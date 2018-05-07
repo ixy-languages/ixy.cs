@@ -1,5 +1,6 @@
 using System;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.InteropServices;
 using System.Threading;
 using IxyCs.Memory;
 using IxyCs.Pci;
@@ -9,6 +10,12 @@ namespace IxyCs.Ixgbe
     public class IxgbeDevice : IxyDevice
     {
         public const int MaxQueues = 64;
+        private const int MaxRxQueueEntries = 4096;
+        private const int MaxTxQueueEntries = 4096;
+        private const int NumRxQueueEntries = 512;
+        private const int NumTxQueueEntries = 512;
+        private const int RxDescriptorSize = 16;
+        private const int TxDescriptorSize = 16;
 
         public IxgbeDevice(string pciAddr, int rxQueues, int txQueues)
             :base(pciAddr, rxQueues, txQueues)
@@ -22,16 +29,19 @@ namespace IxyCs.Ixgbe
 
             DriverName = "ixy-ixgbe";
 
+            RxQueues = new IxgbeRxQueue[rxQueues];
+            TxQueues = new IxgbeTxQueue[txQueues];
+
             PciController.RemoveDriver(pciAddr);
             PciController.EnableDma(pciAddr);
             try
             {
-                //View accessor for memmap file is automatically created
-                MemMap = PciController.MapResource(pciAddr);
+                //View accessor for mmmapped file is automatically created
+                PciMemMap = PciController.MapResource(pciAddr);
             }
             catch(Exception e)
             {
-                Log.Error("Could not map memory for device {0} - {1}", pciAddr, e.Message);
+                Log.Error("FATAL: Could not map memory for device {0} - {1}", pciAddr, e.Message);
                 Environment.Exit(1);
             }
 
@@ -116,10 +126,10 @@ namespace IxyCs.Ixgbe
             Log.Notice("Initializing device {0}", PciAddress);
 
             //Sec 4.6.3 - Wait for EEPROM auto read completion
-            WaitSetReg32(IxgbeDefs.EEC, IxgbeDefs.EEC_ARD);
+            WaitSetReg(IxgbeDefs.EEC, IxgbeDefs.EEC_ARD);
 
             //Sec 4.6.3 - Wait for DMA initialization to complete
-            WaitSetReg32(IxgbeDefs.RDRXCTL, IxgbeDefs.RDRXCTL_DMAIDONE);
+            WaitSetReg(IxgbeDefs.RDRXCTL, IxgbeDefs.RDRXCTL_DMAIDONE);
 
             //Sec 4.6.4 - Init link (auto negotiation)
             InitLink();
@@ -135,7 +145,7 @@ namespace IxyCs.Ixgbe
             //Sec 4.6.8 - Init Tx
             InitTx();
 
-            //Foreach queue : start queue (tx and rx)
+            //TODO : Foreach queue : start queue (tx and rx)
 
             //Skipping last step from 4.6.3
             SetPromisc(true);
@@ -191,7 +201,7 @@ namespace IxyCs.Ixgbe
 
             //Per queue config
             //TODO : USE NUM OF QUEUES
-            for(ushort i = 0; i < 3; i++)
+            for(uint i = 0; i < RxQueues.Length; i++)
             {
                 Log.Notice("Initializing rx queue {0}", i);
                 //Enable advanced rx descriptors
@@ -200,14 +210,100 @@ namespace IxyCs.Ixgbe
                 //DROP_EN causes the NIC to drop packets if no descriptors are available instead of buffering them
                 //A single overflowing queue can fill up the whole buffer and impact operations if not setting this
                 SetFlags(IxgbeDefs.SRRCTL(i), IxgbeDefs.SRRCTL_DROP_EN);
+
                 //Sec 7.1.9 - Set up descriptor ring
-                //TODO : dma_memory is allocated here. Seems to be a bit of a roadblock
+                int ringSizeBytes = NumRxQueueEntries * RxDescriptorSize;
+                IntPtr ringPtr = Marshal.AllocHGlobal(ringSizeBytes);
+                DmaMemory dmaMem = new DmaMemory(ringPtr, MemoryHelper.VirtToPhys(ringPtr));
+                //TODO : The C version sets the allocated memory to -1 here
 
+                //TODO: What's the point of the masking here?
+                SetReg(IxgbeDefs.RDBAL(i), (uint)(dmaMem.PhysicalAddress & 0xFFFFFFFFL));
+                SetReg(IxgbeDefs.RDBAH(i), (uint)(dmaMem.PhysicalAddress >> 32));
+                SetReg(IxgbeDefs.RDLEN(i), (uint)ringSizeBytes);
+                Log.Notice("RX ring {0} physical address: {1}", i, dmaMem.PhysicalAddress);
+                Log.Notice("RX ring {0} virtual address: {1}", i, dmaMem.VirtualAddress);
+
+                //Set ring to empty
+                SetReg(IxgbeDefs.RDH(i), 0);
+                SetReg(IxgbeDefs.RDT(i), 0);
+
+                var queue = new IxgbeRxQueue(NumRxQueueEntries);
+                queue.Index = 0;
+                queue.DescriptorsAddr = dmaMem.VirtualAddress;
+                RxQueues[i] = queue;
             }
+            //Section 4.6.7 - set some magic bits
+            SetFlags(IxgbeDefs.CTRL_EXT, IxgbeDefs.CTRL_EXT_NS_DIS);
+            //This flag probably refers to a broken feature: It's reserved and initialized as '1' but it must be '0'
+            for(uint i = 0; i < RxQueues.Length; i++)
+                ClearFlags(IxgbeDefs.DCA_RXCTRL(i), 1 << 12);
 
+            //Start RX
+            SetFlags(IxgbeDefs.RXCTRL, IxgbeDefs.RXCTRL_RXEN);
         }
 
-        //TODO : IMPLEMENT
-        private void InitTx() {}
+        //Section 4.6.8
+        private void InitTx()
+        {
+            //CRC offload and small packet padding
+            SetFlags(IxgbeDefs.HLREG0, IxgbeDefs.HLREG0_TXCRCEN | IxgbeDefs.HLREG0_TXPADEN);
+
+            //Set default buffer size allocations (section 4.6.11.3.4)
+            SetReg(IxgbeDefs.TXPBSIZE(0), IxgbeDefs.TXPBSIZE_40KB);
+            for(uint i = 1; i < 8; i++)
+                SetReg(IxgbeDefs.TXPBSIZE(i), 0);
+
+            //Required when not using DCB/VTd
+            SetReg(IxgbeDefs.DTXMXSZRQ, 0xFFFF);
+            ClearFlags(IxgbeDefs.RTTDCS, IxgbeDefs.RTTDCS_ARBDIS);
+
+            //Per queue config for all queues
+            for(uint i = 0; i < TxQueues.Length; i++)
+            {
+                Log.Notice("Initializing TX queue {0}", i);
+
+                //Section 7.1.9 - Setup descriptor ring
+                int ringSizeBytes = NumTxQueueEntries * TxDescriptorSize;
+                IntPtr ringPtr = Marshal.AllocHGlobal(ringSizeBytes);
+                DmaMemory dmaMem = new DmaMemory(ringPtr, MemoryHelper.VirtToPhys(ringPtr));
+                //TODO : The C version sets the allocated memory to -1 here
+                //TODO : What's the point of the masking here?
+                SetReg(IxgbeDefs.TDBAL(i), (uint)(dmaMem.PhysicalAddress & 0xFFFFFFFFL));
+                SetReg(IxgbeDefs.TDBAH(i), (uint)(dmaMem.PhysicalAddress >> 32));
+                SetReg(IxgbeDefs.TDLEN(i), (uint)ringSizeBytes);
+                Log.Notice("TX ring {0} physical addr: {1}", i, dmaMem.PhysicalAddress);
+                Log.Notice("TX ring {0} virtual addr: {1}", i, dmaMem.VirtualAddress);
+
+                //Descriptor writeback magic values, important to get good performance and low PCIe overhead
+                //See sec. 7.2.3.4.1 and 7.2.3.5
+                uint txdctl = GetReg(IxgbeDefs.TXDCTL(i));
+
+                //Seems like overflow is irrelevant here
+                unchecked
+                {
+                    //Clear bits
+                    txdctl &= (uint)(~(0x3F | (0x3F << 8) | (0x3F << 16)));
+                    //From DPDK
+                    txdctl |= (36 | (8 << 8) | (4 << 16));
+                }
+                SetReg(IxgbeDefs.TXDCTL(i), txdctl);
+
+                var queue = new IxgbeTxQueue(NumTxQueueEntries);
+                queue.Index = 0;
+                queue.DescriptorsAddr = dmaMem.VirtualAddress;
+                TxQueues[i] = queue;
+            }
+            //Enable DMA
+            SetReg(IxgbeDefs.DMATXCTL, IxgbeDefs.DMATXCTL_TE);
+        }
+
+        private void StartRxQueue(int i)
+        {
+            Log.Notice("Starting RX queue {0}", i);
+            IxgbeRxQueue queue = (IxgbeRxQueue)RxQueues[i];
+            //Mempool should be >=0 number of rx and tx descriptors
+            int mempoolSize = NumRxQueueEntries + NumTxQueueEntries;
+        }
     }
 }

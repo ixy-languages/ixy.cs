@@ -10,6 +10,8 @@ namespace IxyCs
     {
         public string PciAddress{get; private set;}
         public string DriverName{get; protected set;}
+        public IxyQueue[] RxQueues {get; protected set;}
+        public IxyQueue[] TxQueues {get; protected set;}
 
         /// <summary>
         /// Gets / Sets the promisc status. This should only be set in the SetPromisc method
@@ -21,22 +23,22 @@ namespace IxyCs
         /// The file that the PCI device's memory is mapped to. Replaces the C version's mmap.
         /// On setting this, a MemoryMappedFileAccess  (MemMapAccess) is automatically created for the entire file
         /// </summary>
-        protected MemoryMappedFile MemMap
+        protected MemoryMappedFile PciMemMap
         {
-            get {return _memMap; }
+            get {return _pciMemMap; }
             set
             {
-                _memMap?.Dispose();
-                _memMap = value;
-                MemMapAccess?.Dispose();
+                _pciMemMap?.Dispose();
+                _pciMemMap = value;
+                PciMemMapAccess?.Dispose();
                 //Create accessor for entire file
-                MemMapAccess = _memMap.CreateViewAccessor(0, 0);
+                PciMemMapAccess = _pciMemMap.CreateViewAccessor(0, 0);
             }
 
         }
-        protected MemoryMappedViewAccessor MemMapAccess {get; private set;}
+        protected MemoryMappedViewAccessor PciMemMapAccess {get; private set;}
 
-        private MemoryMappedFile _memMap;
+        private MemoryMappedFile _pciMemMap;
 
         public IxyDevice(string pciAddr, int rxQueues, int txQueues)
         {
@@ -55,7 +57,7 @@ namespace IxyCs
             } catch(Exception ex) {
                 if(ex is System.IO.IOException || ex is InvalidOperationException)
                 {
-                    Log.Error("Could not read config file for device with given PCI address");
+                    Log.Error("FATAL: Could not read config file for device with given PCI address");
                     Environment.Exit(1);
                 }
                 else
@@ -64,13 +66,13 @@ namespace IxyCs
 
             if(classId != 2)
             {
-                Log.Error("Device {0} is not an NIC", pciAddr);
+                Log.Error("FATAL: Device {0} is not an NIC", pciAddr);
                 Environment.Exit(1);
             }
 
             if(vendorId == 0x1af4 && deviceId >= 0x1000)
             {
-                Log.Error("Virtio driver is currently not implemented");
+                Log.Error("FATAL: Virtio driver is currently not implemented");
                 Environment.Exit(1);
             }
 
@@ -79,8 +81,8 @@ namespace IxyCs
 
         public void Dispose()
         {
-            MemMap?.Dispose();
-            MemMapAccess?.Dispose();
+            PciMemMap?.Dispose();
+            PciMemMapAccess?.Dispose();
         }
 
         public abstract uint RxBatch(int queueId, PacketBuffer[] buffers);
@@ -93,12 +95,12 @@ namespace IxyCs
         //These might need memory barriers
         protected void SetReg(uint offset, uint value)
         {
-            MemMapAccess.Write(offset, value);
+            PciMemMapAccess.Write(offset, value);
         }
 
         protected uint GetReg(uint offset)
         {
-            return MemMapAccess.ReadUInt32(offset);
+            return PciMemMapAccess.ReadUInt32(offset);
         }
 
         protected void SetFlags(uint offset, uint flags)
@@ -124,7 +126,7 @@ namespace IxyCs
             }
         }
 
-        protected void WaitSetReg32(uint offset, uint mask)
+        protected void WaitSetReg(uint offset, uint mask)
         {
             uint current = GetReg(offset);
             while((current & mask) != mask)

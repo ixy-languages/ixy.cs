@@ -1783,5 +1783,75 @@ namespace IxyCs.Ixgbe
                 return 0x01014 + i * 0x40;
             return 0x0D014 + (i - 64) * 0x40;
         }
+
+        //Receive DMA registers
+        public static uint RDBAL(uint i)
+        {
+            if(i < 64)
+                return 0x01000 + i * 0x40;
+            return 0x0D000 + (i - 64) * 0x40;
+        }
+
+        public static uint RDBAH(uint i)
+        {
+            if(i < 64)
+                return 0x01004 + i * 0x40;
+            return 0x0D004 + (i - 64) * 0x40;
+        }
+
+        public static uint RDLEN(uint i)
+        {
+            if(i < 64)
+                return 0x01008 + i * 0x40;
+            return 0x0D008 + (i - 64) * 0x40;
+        }
+
+        public static uint RDH(uint i)
+        {
+            if(i < 64)
+                return 0x01010 + i * 0x40;
+            return 0x0D010 + (i - 64) * 0x40;
+        }
+
+        public static uint RDT(uint i)
+        {
+            if(i < 64)
+                return 0x01018 + i * 0x40;
+            return 0x0D018 + (i -64) * 0x40;
+        }
+
+        public static uint DCA_RXCTRL(uint i)
+        {
+            if(i <= 15)
+                return 0x02200 + i * 4;
+            else if(i < 64)
+                return 0x0100C + i * 0x40;
+            return 0x0D00C + (i - 64) * 0x40;
+        }
+
+        public static uint TXPBSIZE(uint i)
+        {
+            return 0x0CC00 + i * 4;
+        }
+
+        public static uint TDBAL(uint i)
+        {
+            return 0x06000 + i * 0x40;
+        }
+
+        public static uint TDBAH(uint i)
+        {
+            return 0x06004 + i * 0x40;
+        }
+
+        public static uint TDLEN(uint i)
+        {
+            return 0x06008 + i * 0x40;
+        }
+
+        public static uint TXDCTL(uint i)
+        {
+            return 0x06028 + i * 0x40;
+        }
     }
 }
