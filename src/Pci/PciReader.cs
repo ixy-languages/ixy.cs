@@ -9,7 +9,7 @@ namespace IxyCs.Pci
 
         public PciReader(string pciAddr, string resource)
         {
-            string path = String.Format("/sys/bus/pci/devices/{0}/resource");
+            string path = String.Format("/sys/bus/pci/devices/{0}/resource", pciAddr);
             _binReader = new BinaryReader(File.Open(path, FileMode.Open));
         }
 

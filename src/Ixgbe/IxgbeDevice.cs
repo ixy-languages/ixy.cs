@@ -302,7 +302,7 @@ namespace IxyCs.Ixgbe
         {
             Log.Notice("Starting RX queue {0}", i);
             IxgbeRxQueue queue = (IxgbeRxQueue)RxQueues[i];
-            //Mempool should be >=0 number of rx and tx descriptors
+            //Mempool should be >= number of rx and tx descriptors
             int mempoolSize = NumRxQueueEntries + NumTxQueueEntries;
         }
     }

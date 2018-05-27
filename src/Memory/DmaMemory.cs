@@ -2,7 +2,7 @@ using System;
 
 namespace IxyCs.Memory
 {
-    public struct DmaMemory
+    public class DmaMemory
     {
         public readonly IntPtr VirtualAddress;
         public readonly long PhysicalAddress;

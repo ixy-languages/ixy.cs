@@ -9,7 +9,7 @@ namespace IxyCs.Pci
 
         public PciWriter(string pciAddr, string resource)
         {
-            string path = String.Format("/sys/bus/pci/devices/{0}/resource");
+            string path = String.Format("/sys/bus/pci/devices/{0}/resource", pciAddr);
             _binWriter = new BinaryWriter(File.Open(path, FileMode.Open));
         }
 
