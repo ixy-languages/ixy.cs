@@ -14,24 +14,28 @@ namespace IxyCs.Memory
         //TODO : This should be locked
         private static int HugePageNumber = 0;
 
+        //TODO : is size correct data type?
+        [DllImport("ixy_c.so")]
+        public static extern IntPtr dma_memory(uint size, bool requireContiguous);
+
         public static long VirtToPhys(IntPtr virt)
         {
             long pageSize = Environment.SystemPageSize;
             long physical = 0;
-            //TODO : Types are most likely wrong here
             //Read page from /proc/self/pagemap
             try
             {
                 using(BinaryReader reader = new BinaryReader(File.Open("/proc/self/pagemap", FileMode.Open)))
                 {
-                    reader.BaseStream.Seek(virt.ToInt64() / pageSize * sizeof(long),
+                    long pos = virt.ToInt64() / pageSize * sizeof(long);
+                    reader.BaseStream.Seek(pos,
                     SeekOrigin.Begin);
                     physical = reader.ReadInt64();
                 }
             }
             catch(Exception ex)
             {
-                Log.Error("FATAL: Could not translate virtual address {0} to physical address. - {1}", virt, ex.Message);
+                Log.Error("FATAL: Could not translate virtual address {0:X} to physical address. - {1}", virt, ex.Message);
                 Environment.Exit(1);
             }
             return (physical & 0x7fffffffffffffL) * pageSize + virt.ToInt64() % pageSize;
@@ -86,7 +90,45 @@ namespace IxyCs.Memory
             //BUG: VirtToPhys doesn't seem to work for our mmap pointer
             //(although pointer is valid and VirtToPhys works on pointers allocated with AlocHGlobal)
             //might need to call this entire function in C, unfortunately
+            //Reason might be that pointer from MemoryMappedFile is already physical?
             return new DmaMemory((IntPtr)virtAddr, VirtToPhys((IntPtr)virtAddr));
+        }
+
+        public unsafe static DmaMemory AllocateDmaC(int size, bool requireContiguous)
+        {
+            var virt = dma_memory(size, requireContiguous);
+            return new DmaMemory(virt, VirtToPhys(virt));
+        }
+
+        //TODO : Incomplete function, see comments
+        public static Mempool AllocateMempool(uint numEntries, uint entrySize)
+        {
+            entrySize = (entrySize == 0) ? 2048 : entrySize;
+            if(HugePageSize % entrySize != 0)
+            {
+                Log.Error("FATAL: Entry size must be a divisor of the huge page size {0}", HugePageSize);
+                Environment.Exit(1);
+            }
+
+            var dma = AllocateDmaC(numEntries * entrySize, false);
+            var mempool = new Mempool(dma.VirtualAddress, entrySize, numEntries);
+            //TODO : Whatever free_stack_top is, it is set to numEntries here
+            for(uint i = 0; i < numEntries; i++)
+            {
+                mempool.Entries[i] = i;
+
+                //Get base address of buffer in DMA memory
+                var bufAddr = IntPtr.Add(mempool.BaseAddress, (int)(i * entrySize));
+                //Instantiate wrapper object for this buffer and write to real DMA buffer
+                var buffer = new PacketBuffer(bufAddr);
+                //Maybe this shoud be a long instead of IntPtr
+                //In general there is some confusion on how much code should be x64 specific
+                buffer.PhysicalAddress = new IntPtr(VirtToPhys(bufAddr));
+                buffer.MempoolIndex = (int)i;
+                //TODO : Set some sort of mempool id
+                buffer.Size = 0;
+            }
+            return mempool;
         }
     }
 }

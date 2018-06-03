@@ -213,8 +213,7 @@ namespace IxyCs.Ixgbe
 
                 //Sec 7.1.9 - Set up descriptor ring
                 int ringSizeBytes = NumRxQueueEntries * RxDescriptorSize;
-                IntPtr ringPtr = Marshal.AllocHGlobal(ringSizeBytes);
-                DmaMemory dmaMem = new DmaMemory(ringPtr, MemoryHelper.VirtToPhys(ringPtr));
+                var dmaMem = MemoryHelper.AllocateDmaC(ringSizeBytes, true);
                 //TODO : The C version sets the allocated memory to -1 here
 
                 //TODO: What's the point of the masking here?
@@ -265,8 +264,7 @@ namespace IxyCs.Ixgbe
 
                 //Section 7.1.9 - Setup descriptor ring
                 int ringSizeBytes = NumTxQueueEntries * TxDescriptorSize;
-                IntPtr ringPtr = Marshal.AllocHGlobal(ringSizeBytes);
-                DmaMemory dmaMem = new DmaMemory(ringPtr, MemoryHelper.VirtToPhys(ringPtr));
+                var dmaMem = MemoryHelper.AllocateDmaC(ringSizeBytes, true);
                 //TODO : The C version sets the allocated memory to -1 here
                 //TODO : What's the point of the masking here?
                 SetReg(IxgbeDefs.TDBAL(i), (uint)(dmaMem.PhysicalAddress & 0xFFFFFFFFL));
