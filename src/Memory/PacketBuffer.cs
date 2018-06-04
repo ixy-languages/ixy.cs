@@ -12,6 +12,7 @@ namespace IxyCs.Memory
      */
     public class PacketBuffer
     {
+        public const int DataOffset = 64;
         //These buffers have 64 bytes of headroom so the actual data has an offset of 64 bytes
         /*
         Fields:
@@ -34,17 +35,18 @@ namespace IxyCs.Memory
 
         //TODO : Reference to mempool isn't possible, so we'll probably resort to some ID system
 
-        //Mempool index, 32 bits, offset 128
+        //Mempool index, 32 bits, offset 128 bits
         public int MempoolIndex
         {
-            get {return Marshal.ReadInt32(_baseAddress, 128);}
-            set {Marshal.WriteInt32(_baseAddress, 128, value);}
+            get {return Marshal.ReadInt32(_baseAddress, 16);}
+            set {Marshal.WriteInt32(_baseAddress, 16, value);}
         }
 
+        //Size, 32 bits, offset 160 bits
         public int Size
         {
-            get {return Marshal.ReadInt32(_baseAddress, 160);}
-            set {Marshal.WriteInt32(_baseAddress, 160, value);}
+            get {return Marshal.ReadInt32(_baseAddress, 20);}
+            set {Marshal.WriteInt32(_baseAddress, 20, value);}
         }
 
         public PacketBuffer(IntPtr baseAddr)

@@ -1853,5 +1853,15 @@ namespace IxyCs.Ixgbe
         {
             return 0x06028 + i * 0x40;
         }
+
+        public static uint RXDCTL(uint i)
+        {
+            if (i < 64)
+                return 0x01028 + i * 0x40;
+            return 0x0D028 + (i-64) * 0x40;
+        }
+
+        public static uint TDH(uint i) {return 0x06010 + i * 0x40;}
+        public static uint TDT(uint i) {return 0x06018 + i * 0x40;}
     }
 }

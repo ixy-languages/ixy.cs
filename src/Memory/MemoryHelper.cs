@@ -94,13 +94,12 @@ namespace IxyCs.Memory
             return new DmaMemory((IntPtr)virtAddr, VirtToPhys((IntPtr)virtAddr));
         }
 
-        public unsafe static DmaMemory AllocateDmaC(int size, bool requireContiguous)
+        public unsafe static DmaMemory AllocateDmaC(uint size, bool requireContiguous)
         {
             var virt = dma_memory(size, requireContiguous);
             return new DmaMemory(virt, VirtToPhys(virt));
         }
 
-        //TODO : Incomplete function, see comments
         public static Mempool AllocateMempool(uint numEntries, uint entrySize)
         {
             entrySize = (entrySize == 0) ? 2048 : entrySize;
@@ -112,7 +111,6 @@ namespace IxyCs.Memory
 
             var dma = AllocateDmaC(numEntries * entrySize, false);
             var mempool = new Mempool(dma.VirtualAddress, entrySize, numEntries);
-            //TODO : Whatever free_stack_top is, it is set to numEntries here
             for(uint i = 0; i < numEntries; i++)
             {
                 mempool.Entries[i] = i;

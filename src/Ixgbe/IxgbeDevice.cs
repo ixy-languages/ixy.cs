@@ -145,7 +145,11 @@ namespace IxyCs.Ixgbe
             //Sec 4.6.8 - Init Tx
             InitTx();
 
-            //TODO : Foreach queue : start queue (tx and rx)
+            //Start each Rx/Tx queue
+            for(int i = 0; i < RxQueues.Length; i++)
+                StartRxQueue(i);
+            for(int i= 0; i < TxQueues.Length; i++)
+                StartTxQueue(i);
 
             //Skipping last step from 4.6.3
             SetPromisc(true);
@@ -263,7 +267,7 @@ namespace IxyCs.Ixgbe
                 Log.Notice("Initializing TX queue {0}", i);
 
                 //Section 7.1.9 - Setup descriptor ring
-                int ringSizeBytes = NumTxQueueEntries * TxDescriptorSize;
+                uint ringSizeBytes = NumTxQueueEntries * TxDescriptorSize;
                 var dmaMem = MemoryHelper.AllocateDmaC(ringSizeBytes, true);
                 //TODO : The C version sets the allocated memory to -1 here
                 //TODO : What's the point of the masking here?
@@ -299,9 +303,64 @@ namespace IxyCs.Ixgbe
         private void StartRxQueue(int i)
         {
             Log.Notice("Starting RX queue {0}", i);
-            IxgbeRxQueue queue = (IxgbeRxQueue)RxQueues[i];
+            var queue = (IxgbeRxQueue)RxQueues[i];
             //Mempool should be >= number of rx and tx descriptors
-            int mempoolSize = NumRxQueueEntries + NumTxQueueEntries;
+            uint mempoolSize = NumRxQueueEntries + NumTxQueueEntries;
+            queue.Mempool = MemoryHelper.AllocateMempool(mempoolSize < 4096 ? 4096 : mempoolSize, 2048);
+
+            if((queue.EntriesCount & (queue.EntriesCount - 1)) != 0)
+            {
+                Log.Error("FATAL: number of queue entries must be a power of 2");
+                Environment.Exit(1);
+            }
+
+            for(int ei = 0; ei < queue.EntriesCount; ei++)
+            {
+                //Is pointer arithmetic correct here?
+                IntPtr descriptorAddr = IntPtr.Add(queue.DescriptorsAddr, ei * IxgbeAdvRxDescriptor.DescriptorSize);
+                Log.Notice("Setting up descriptor at address #{0}", descriptorAddr);
+                var descriptor = new IxgbeAdvRxDescriptor(descriptorAddr);
+                //Allocate packet buffer
+                IntPtr virtBufferAddr = IntPtr.Zero;
+                var packetBuffer = queue.Mempool.AllocatePacketBuffer(out virtBufferAddr);
+                if(packetBuffer == null)
+                {
+                    Log.Error("Fatal: Could not allocate packet buffer");
+                    Environment.Exit(1);
+                }
+                descriptor.PacketBufferAddress = IntPtr.Add(packetBuffer.PhysicalAddress, PacketBuffer.DataOffset);
+                descriptor.HeaderBufferAddress = IntPtr.Zero;
+                queue.VirtualAddresses[ei] = virtBufferAddr;
+            }
+
+            //Enable queue and wait if necessary
+            SetFlags(IxgbeDefs.RXDCTL((uint)i), IxgbeDefs.RXDCTL_ENABLE);
+            WaitSetReg(IxgbeDefs.RXDCTL((uint)i), IxgbeDefs.RXDCTL_ENABLE);
+
+            //Rx queue starts out full
+            SetReg(IxgbeDefs.RDH((uint)i), 0);
+            //Was set to 0 before in the init function
+            SetReg(IxgbeDefs.RDT((uint)i), (uint)(queue.EntriesCount - 1));
+        }
+
+        private void StartTxQueue(int queueId)
+        {
+            Log.Notice("Starting TX queue {0}", queueId);
+            var queue = (IxgbeTxQueue)TxQueues[queueId];
+
+             if((queue.EntriesCount & (queue.EntriesCount - 1)) != 0)
+            {
+                Log.Error("FATAL: number of queue entries must be a power of 2");
+                Environment.Exit(1);
+            }
+
+            //TX queue starts out empty
+            SetReg(IxgbeDefs.TDH((uint)queueId), 0);
+            SetReg(IxgbeDefs.TDT((uint)queueId), 0);
+
+            //Enable queue and wait if necessary
+            SetFlags(IxgbeDefs.TXDCTL((uint)queueId), IxgbeDefs.TXDCTL_ENABLE);
+            WaitSetReg(IxgbeDefs.TXDCTL((uint)queueId), IxgbeDefs.TXDCTL_ENABLE);
         }
     }
 }

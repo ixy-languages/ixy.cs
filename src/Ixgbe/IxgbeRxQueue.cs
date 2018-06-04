@@ -1,4 +1,5 @@
 using System;
+using IxyCs.Memory;
 
 namespace IxyCs.Ixgbe
 {
@@ -6,6 +7,7 @@ namespace IxyCs.Ixgbe
     {
         public IntPtr[] VirtualAddresses;
         public IntPtr DescriptorsAddr {get; set;}
+        public Mempool Mempool {get; set;}
 
         public IxgbeRxQueue(int entriesCount)
             :base(entriesCount)
