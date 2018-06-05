@@ -36,7 +36,7 @@ namespace IxyCs.Ixgbe
             PciController.EnableDma(pciAddr);
             try
             {
-                //View accessor for mmmapped file is automatically created
+                //View accessor for mmapped file is automatically created
                 PciMemMap = PciController.MapResource(pciAddr);
             }
             catch(Exception e)
@@ -45,7 +45,8 @@ namespace IxyCs.Ixgbe
                 Environment.Exit(1);
             }
 
-            //TODO : Initialize rx / tx queue arrays (which type?)
+            RxQueues = new IxgbeRxQueue[rxQueues];
+            TxQueues = new IxgbeTxQueue[txQueues];
 
         }
 
@@ -95,10 +96,75 @@ namespace IxyCs.Ixgbe
             stats.TxBytes += txBytes;
         }
 
-        public override uint RxBatch(int queueId, PacketBuffer[] buffers)
+        //Section 1.8.2 and 7.1
+        //Try to receive a single packet if one is available, non-blocking
+        //Section 7.1.9 explains RX ring structure
+        //We control the tail of the queue, hardware controls the head
+        public override PacketBuffer[] RxBatch(int queueId, int buffersCount)
         {
-            //TODO : Implement
-            return 0;
+            if(queueId < 0 || queueId >= RxQueues.Length)
+            {
+                Log.Error("Queue id out of bounds");
+                return new PacketBuffer[0];
+            }
+            var buffers = new PacketBuffer[buffersCount];
+            var queue = (IxgbeRxQueue)RxQueues[queueId];
+            ushort rxIndex = (ushort)queue.Index;
+            ushort lastRxIndex = rxIndex;
+            for(int bufInd = 0; bufInd < buffersCount; bufInd++)
+            {
+                var descriptor = queue.GetDescriptor(rxIndex);
+                if(descriptor == null)
+                {
+                    Log.Error("Trying to read descriptor from uninitialized queue");
+                    return new PacketBuffer[0];
+                }
+
+                uint status = descriptor.WbStatusError;
+                //Status DONE
+                if((status & IxgbeDefs.RXD_STAT_DD) != 0)
+                {
+                    //Status END OF PACKET
+                    if((status & IxgbeDefs.RXDADV_STAT_EOP) == 0)
+                    {
+                        Log.Error("Multi segment packets are not supported - increase buffer size or decrease MTU");
+                        return new PacketBuffer[0];
+                    }
+                    //We got a packet - read and copy the whole descriptor
+                    var packetBuffer = new PacketBuffer(queue.VirtualAddresses[rxIndex]);
+                    packetBuffer.Size = descriptor.WbLength;
+
+                    //TODO : Double check this
+
+                    //This would be the place to implement RX offloading by translating the device-specific
+                    //flags to an independent representation in that buffer (similar to how DPDK works)
+                    var newBufVirtAddr = IntPtr.Zero;
+                    var newBuf = queue.Mempool.AllocatePacketBuffer(out newBufVirtAddr);
+                    if(newBufVirtAddr == IntPtr.Zero)
+                    {
+                        Log.Error("Failed to allocate new buffer for rx - you are either leaking memory or your mempool is too small");
+                        return new PacketBuffer[0];
+                    }
+                    descriptor.PacketBufferAddress = IntPtr.Add(newBuf.PhysicalAddress, PacketBuffer.DataOffset);
+                    descriptor.HeaderBufferAddress = IntPtr.Zero; //This resets the flags
+                    queue.VirtualAddresses[rxIndex] = newBufVirtAddr;
+                    buffers[bufInd] = packetBuffer;
+
+                    //Want to read the next one in the next iteration but we still need the current one to update RDT later
+                    lastRxIndex = rxIndex;
+                    rxIndex = WrapRing(rxIndex, (ushort)queue.EntriesCount);
+                }
+                else {break;}
+            }
+
+            if(rxIndex != lastRxIndex)
+            {
+                //Tell hardware that we are done. This is intentionally off by one, otherwise we'd set
+                //RDT=RDH if we are receiving faster than packets are coming in, which would mean queue is full
+                SetReg(IxgbeDefs.RDT((uint)queueId), lastRxIndex);
+                queue.Index = rxIndex;
+            }
+            return buffers;
         }
 
         public override uint TxBatch(int queueId, PacketBuffer[] buffers)
@@ -217,7 +283,7 @@ namespace IxyCs.Ixgbe
 
                 //Sec 7.1.9 - Set up descriptor ring
                 int ringSizeBytes = NumRxQueueEntries * RxDescriptorSize;
-                var dmaMem = MemoryHelper.AllocateDmaC(ringSizeBytes, true);
+                var dmaMem = MemoryHelper.AllocateDmaC((uint)ringSizeBytes, true);
                 //TODO : The C version sets the allocated memory to -1 here
 
                 //TODO: What's the point of the masking here?
@@ -316,10 +382,8 @@ namespace IxyCs.Ixgbe
 
             for(int ei = 0; ei < queue.EntriesCount; ei++)
             {
-                //Is pointer arithmetic correct here?
-                IntPtr descriptorAddr = IntPtr.Add(queue.DescriptorsAddr, ei * IxgbeAdvRxDescriptor.DescriptorSize);
-                Log.Notice("Setting up descriptor at address #{0}", descriptorAddr);
-                var descriptor = new IxgbeAdvRxDescriptor(descriptorAddr);
+                Log.Notice("Setting up descriptor at index #{0}", ei);
+                var descriptor = queue.GetDescriptor(ei);
                 //Allocate packet buffer
                 IntPtr virtBufferAddr = IntPtr.Zero;
                 var packetBuffer = queue.Mempool.AllocatePacketBuffer(out virtBufferAddr);
@@ -361,6 +425,12 @@ namespace IxyCs.Ixgbe
             //Enable queue and wait if necessary
             SetFlags(IxgbeDefs.TXDCTL((uint)queueId), IxgbeDefs.TXDCTL_ENABLE);
             WaitSetReg(IxgbeDefs.TXDCTL((uint)queueId), IxgbeDefs.TXDCTL_ENABLE);
+        }
+
+        //Advance index with wrap-around
+        private ushort WrapRing(ushort index, ushort ringSize)
+        {
+            return (ushort)((index + 1) & (ringSize - 1));
         }
     }
 }

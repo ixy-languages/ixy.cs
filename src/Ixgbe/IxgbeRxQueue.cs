@@ -16,5 +16,16 @@ namespace IxyCs.Ixgbe
             DescriptorsAddr = IntPtr.Zero;
         }
 
+        /// <summary>
+        /// Gets the Rx descriptor at index i, starting at DescriptorsAddr
+        /// </summary>
+        public IxgbeAdvRxDescriptor GetDescriptor(int i)
+        {
+            if(DescriptorsAddr == IntPtr.Zero)
+                return null;
+            //TODO TEST : Is pointer arithmetic correct here?
+            return new IxgbeAdvRxDescriptor(IntPtr.Add(DescriptorsAddr, i * IxgbeAdvRxDescriptor.DescriptorSize));
+        }
+
     }
 }

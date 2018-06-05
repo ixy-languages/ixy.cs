@@ -15,6 +15,7 @@ namespace IxyCs.Ixgbe
         public const int DescriptorSize = 16;
 
         //TODO: The C version says something about little endian for all these types
+        //TODO: Marshal doesn't offer functions for uints for some reason. Converting to int is hopefully fine
 
         //read.pkt_addr - len: 8 - offs: 0
         public IntPtr PacketBufferAddress
@@ -35,6 +36,20 @@ namespace IxyCs.Ixgbe
         {
             get {return (uint)Marshal.ReadInt32(_baseAddress,0);}
             set {Marshal.WriteInt32(_baseAddress,0,(int)value);}
+        }
+
+        //wb.upper.status_error - len: 4 - offs 8
+        public uint WbStatusError
+        {
+            get {return (uint)Marshal.ReadInt32(_baseAddress, 8);}
+            set {Marshal.WriteInt32(_baseAddress, 8, (int)value);}
+        }
+
+        //wb.upper.length - len: 2 - offs: 12
+        public ushort WbLength
+        {
+            get {return (ushort)Marshal.ReadInt16(_baseAddress, 12);}
+            set {Marshal.WriteInt16(_baseAddress, 12, (short)value);}
         }
 
         //TODO: Some more fields..

@@ -31,6 +31,15 @@ namespace IxyCs
             this.TxBytes = txb;
         }
 
+        public DeviceStats(IxyDevice dev)
+        {
+            this.Device = dev;
+            this.RxBytes = 0;
+            this.TxBytes = 0;
+            this.RxPackets = 0;
+            this.TxPackets = 0;
+        }
+
         public void PrintStats()
         {
             Console.WriteLine("{0} RX: {1} bytes {2} packets", Device?.PciAddress, RxBytes, RxPackets);

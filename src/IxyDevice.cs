@@ -85,7 +85,7 @@ namespace IxyCs
             PciMemMapAccess?.Dispose();
         }
 
-        public abstract uint RxBatch(int queueId, PacketBuffer[] buffers);
+        public abstract PacketBuffer[] RxBatch(int queueId, int buffersCount);
         public abstract uint TxBatch(int queueId, PacketBuffer[] buffers);
         public abstract void ReadStats(ref DeviceStats stats);
         public abstract uint GetLinkSpeed();

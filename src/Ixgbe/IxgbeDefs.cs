@@ -1773,6 +1773,10 @@ namespace IxyCs.Ixgbe
         public const uint SB_IOSF_CTRL_ADDR_MASK = 0xFF;
         public const uint SB_IOSF_CTRL_TARGET_SELECT_MASK = 0x7;
         public const uint NW_MNG_IF_SEL = 0x00011178;
+        public const uint RXDADV_STAT_DD = RXD_STAT_DD;
+        public const uint RXDADV_STAT_EOP = RXD_STAT_EOP;
+        public const uint RXDADV_STAT_FLM = RXD_STAT_FLM;
+        public const uint RXDADV_STAT_VP = RXD_STAT_VP;
 
         public static uint RXPBSIZE(uint i) {return 0x03C00 + i * 4;}
         public static uint SRRCTL(uint i)
