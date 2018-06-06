@@ -1777,6 +1777,14 @@ namespace IxyCs.Ixgbe
         public const uint RXDADV_STAT_EOP = RXD_STAT_EOP;
         public const uint RXDADV_STAT_FLM = RXD_STAT_FLM;
         public const uint RXDADV_STAT_VP = RXD_STAT_VP;
+        public const uint ADVTXD_STAT_DD = TXD_STAT_DD;
+        public const uint ADVTXD_DCMD_EOP = TXD_CMD_EOP;
+        public const uint ADVTXD_DCMD_IFCS = TXD_CMD_IFCS;
+        public const uint ADVTXD_DCMD_RS = TXD_CMD_RS;
+        public const uint ADVTXD_DCMD_DEXT = TXD_CMD_DEXT;
+        public const uint ADVTXD_PAYLEN_SHIFT = 14;
+
+
 
         public static uint RXPBSIZE(uint i) {return 0x03C00 + i * 4;}
         public static uint SRRCTL(uint i)

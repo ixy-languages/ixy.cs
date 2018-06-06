@@ -26,6 +26,11 @@ namespace IxyCs.Memory
         private IntPtr _baseAddress;
         private uint _size;
 
+        /// <summary>
+        /// The virtual address of the actual Packet Buffer that this object wraps
+        /// </summary>
+        public IntPtr VirtualAddress{ get {return _baseAddress;} }
+
         //Physical Address, 64 bits, offset 0
         public IntPtr PhysicalAddress
         {
@@ -33,7 +38,12 @@ namespace IxyCs.Memory
             set {Marshal.WriteIntPtr(_baseAddress, 0, value);}
         }
 
-        //TODO : Reference to mempool isn't possible, so we'll probably resort to some ID system
+        //This id is 64 bits to keep the data as similar to the C version as possible
+        public long MempoolId
+        {
+            get {return Marshal.ReadInt64(_baseAddress, 8);}
+            set {Marshal.WriteInt64(_baseAddress, 8, value);}
+        }
 
         //Mempool index, 32 bits, offset 128 bits
         public int MempoolIndex

@@ -6,7 +6,7 @@ namespace IxyCs.Ixgbe
     {
         public IntPtr[] VirtualAddresses;
         public IntPtr DescriptorsAddr {get; set;}
-        public int CleanIndex {get; set;}
+        public ushort CleanIndex {get; set;}
 
 
         public IxgbeTxQueue(int entriesCount)
@@ -15,6 +15,17 @@ namespace IxyCs.Ixgbe
             this.VirtualAddresses = new IntPtr[entriesCount];
             DescriptorsAddr = IntPtr.Zero;
             CleanIndex = 0;
+        }
+
+        /// <summary>
+        /// Gets the Tx descriptor at index i, starting at DescriptorsAddr
+        /// </summary>
+        public IxgbeAdvTxDescriptor GetDescriptor(int i)
+        {
+            if(DescriptorsAddr == IntPtr.Zero)
+                return null;
+            //TODO TEST : Is pointer arithmetic correct here?
+            return new IxgbeAdvTxDescriptor(IntPtr.Add(DescriptorsAddr, i * IxgbeAdvTxDescriptor.DescriptorSize));
         }
     }
 }

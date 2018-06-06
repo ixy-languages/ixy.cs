@@ -16,6 +16,7 @@ namespace IxyCs.Ixgbe
         private const int NumTxQueueEntries = 512;
         private const int RxDescriptorSize = 16;
         private const int TxDescriptorSize = 16;
+        private const int TxCleanBatch = 32;
 
         public IxgbeDevice(string pciAddr, int rxQueues, int txQueues)
             :base(pciAddr, rxQueues, txQueues)
@@ -103,10 +104,8 @@ namespace IxyCs.Ixgbe
         public override PacketBuffer[] RxBatch(int queueId, int buffersCount)
         {
             if(queueId < 0 || queueId >= RxQueues.Length)
-            {
-                Log.Error("Queue id out of bounds");
-                return new PacketBuffer[0];
-            }
+                throw new ArgumentOutOfRangeException("Queue id out of bounds");
+
             var buffers = new PacketBuffer[buffersCount];
             var queue = (IxgbeRxQueue)RxQueues[queueId];
             ushort rxIndex = (ushort)queue.Index;
@@ -115,10 +114,7 @@ namespace IxyCs.Ixgbe
             {
                 var descriptor = queue.GetDescriptor(rxIndex);
                 if(descriptor == null)
-                {
-                    Log.Error("Trying to read descriptor from uninitialized queue");
-                    return new PacketBuffer[0];
-                }
+                    throw new InvalidOperationException("Trying to read descriptor from unitialized queue");
 
                 uint status = descriptor.WbStatusError;
                 //Status DONE
@@ -126,11 +122,10 @@ namespace IxyCs.Ixgbe
                 {
                     //Status END OF PACKET
                     if((status & IxgbeDefs.RXDADV_STAT_EOP) == 0)
-                    {
-                        Log.Error("Multi segment packets are not supported - increase buffer size or decrease MTU");
-                        return new PacketBuffer[0];
-                    }
+                        throw new InvalidOperationException("Multi segment packets are not supported - increase buffer size or decrease MTU");
+
                     //We got a packet - read and copy the whole descriptor
+                    //TODO : May want to create hard copy of descriptor here so we know nothing will change
                     var packetBuffer = new PacketBuffer(queue.VirtualAddresses[rxIndex]);
                     packetBuffer.Size = descriptor.WbLength;
 
@@ -138,16 +133,13 @@ namespace IxyCs.Ixgbe
 
                     //This would be the place to implement RX offloading by translating the device-specific
                     //flags to an independent representation in that buffer (similar to how DPDK works)
-                    var newBufVirtAddr = IntPtr.Zero;
-                    var newBuf = queue.Mempool.AllocatePacketBuffer(out newBufVirtAddr);
-                    if(newBufVirtAddr == IntPtr.Zero)
-                    {
-                        Log.Error("Failed to allocate new buffer for rx - you are either leaking memory or your mempool is too small");
-                        return new PacketBuffer[0];
-                    }
+                    var newBuf = queue.Mempool.AllocatePacketBuffer();
+                    if(newBuf == null)
+                        throw new OutOfMemoryException("Failed to allocate new buffer for rx - you are either leaking memory or your mempool is too small");
+
                     descriptor.PacketBufferAddress = IntPtr.Add(newBuf.PhysicalAddress, PacketBuffer.DataOffset);
                     descriptor.HeaderBufferAddress = IntPtr.Zero; //This resets the flags
-                    queue.VirtualAddresses[rxIndex] = newBufVirtAddr;
+                    queue.VirtualAddresses[rxIndex] = newBuf.VirtualAddress;
                     buffers[bufInd] = packetBuffer;
 
                     //Want to read the next one in the next iteration but we still need the current one to update RDT later
@@ -167,10 +159,94 @@ namespace IxyCs.Ixgbe
             return buffers;
         }
 
-        public override uint TxBatch(int queueId, PacketBuffer[] buffers)
+        public override int TxBatch(int queueId, PacketBuffer[] buffers)
         {
-            //TODO : Implement
-            return 0;
+            if(queueId < 0 || queueId >= RxQueues.Length)
+                throw new ArgumentOutOfRangeException("Queue id out of bounds");
+
+            var queue = (IxgbeTxQueue)TxQueues[queueId];
+            ushort cleanIndex = queue.CleanIndex;
+            ushort currentIndex = (ushort)queue.Index;
+
+            //Step 1: Clean up descriptors that were sent out by the hardware and return them to the mempool
+            //Start by reading step 2 which is done first for each packet
+            //Cleaning up must be done in batches for performance reasons, so this is unfortunately somewhat complicated
+            while(true)
+            {
+                //currentIndex is always ahead of clean (invariant of our queue)
+                int cleanable = currentIndex - cleanIndex;
+                if(cleanable < 0)
+                    cleanable = queue.EntriesCount + cleanable;
+                if(cleanable < TxCleanBatch)
+                    break;
+
+                //Calculate the index of the last transcriptor in the clean batch
+                //We can't check all descriptors for performance reasons
+                int cleanupTo = cleanIndex + TxCleanBatch - 1;
+                if(cleanupTo >= queue.EntriesCount)
+                    cleanupTo -= queue.EntriesCount;
+
+                var txDesc = queue.GetDescriptor(cleanupTo);
+                if(txDesc == null)
+                    throw new InvalidOperationException("Trying to read Tx descriptor from uninitialized queue");
+                uint status = txDesc.WbStatus;
+
+                //Hardware sets this flag as soon as it's sent out, we can give back all bufs in the batch back to the mempool
+                if((status & IxgbeDefs.ADVTXD_STAT_DD) != 0)
+                {
+                    int i = cleanIndex;
+                    while(true)
+                    {
+                        var packetBuffer = new PacketBuffer(queue.VirtualAddresses[i]);
+                        var pool = Mempool.FindPool(packetBuffer.MempoolId);
+                        if(pool == null)
+                            throw new NullReferenceException("Could not find mempool with id specified by PacketBuffer");
+                        pool.FreeBuffer(packetBuffer);
+                        if(i == cleanupTo)
+                            break;
+                        i = WrapRing(i, queue.EntriesCount);
+                    }
+                    //Next descriptor to be cleaned up is one after the one we just cleaned
+                    cleanIndex = WrapRing((ushort)cleanupTo, (ushort)queue.EntriesCount);
+                }
+                //Clean the whole batch or nothing. This will leave some packets in the queue forever
+                //if you stop transmitting but that's not a real concern
+                else {break;}
+            }
+            queue.CleanIndex = cleanIndex;
+
+            //Step 2: SSend out as many of our packets as possible
+            uint sent;
+            for(sent = 0; sent < buffers.Length; sent++)
+            {
+                ushort nextIndex = WrapRing(currentIndex, (ushort)queue.EntriesCount);
+                //We are full if the next index is the one we are trying to reclaim
+                if(cleanIndex == nextIndex)
+                    break;
+
+                var buffer = buffers[sent];
+                //Remember virtual address to clean it up later
+                queue.VirtualAddresses[currentIndex] = buffer.VirtualAddress;
+                queue.Index = WrapRing(queue.Index, queue.EntriesCount);
+                var txDesc = queue.GetDescriptor(currentIndex);
+                //NIC reads from here
+                txDesc.BufferAddr = IntPtr.Add(buffer.PhysicalAddress, PacketBuffer.DataOffset);
+                //Always the same flags: One buffer (EOP), advanced data descriptor, CRC offload, data length
+                txDesc.CmdTypeLength = (IxgbeDefs.ADVTXD_DCMD_EOP | IxgbeDefs.ADVTXD_DCMD_RS |
+                                        IxgbeDefs.ADVTXD_DCMD_DEXT | IxgbeDefs.ADVTXD_DTYP_DATA
+                                        | (uint)buffer.Size);
+                //No fancy offloading - only the total payload length
+                //implement offloading flags here:
+                // * ip checksum offloading is trivial: just set the offset
+                // * tcp/udp checksum offloading is more annoying, you have to precalculate the pseudo-header checksum
+                txDesc.OlInfoStatus = ((uint)buffer.Size << (int)IxgbeDefs.ADVTXD_PAYLEN_SHIFT);
+                currentIndex = nextIndex;
+            }
+
+            //Send out by advancing tail, i.e. pass control of the bus to the NIC
+            //This seems like a textbook case for a release memory order, but Intel's driver doesn't even use a compiler barrier here
+            SetReg(IxgbeDefs.TDT((uint)queueId), (uint)queue.Index);
+            return (int)sent;
         }
 
         private void ResetAndInit()
@@ -385,8 +461,7 @@ namespace IxyCs.Ixgbe
                 Log.Notice("Setting up descriptor at index #{0}", ei);
                 var descriptor = queue.GetDescriptor(ei);
                 //Allocate packet buffer
-                IntPtr virtBufferAddr = IntPtr.Zero;
-                var packetBuffer = queue.Mempool.AllocatePacketBuffer(out virtBufferAddr);
+                var packetBuffer = queue.Mempool.AllocatePacketBuffer();
                 if(packetBuffer == null)
                 {
                     Log.Error("Fatal: Could not allocate packet buffer");
@@ -394,7 +469,7 @@ namespace IxyCs.Ixgbe
                 }
                 descriptor.PacketBufferAddress = IntPtr.Add(packetBuffer.PhysicalAddress, PacketBuffer.DataOffset);
                 descriptor.HeaderBufferAddress = IntPtr.Zero;
-                queue.VirtualAddresses[ei] = virtBufferAddr;
+                queue.VirtualAddresses[ei] = packetBuffer.VirtualAddress;
             }
 
             //Enable queue and wait if necessary
@@ -431,6 +506,11 @@ namespace IxyCs.Ixgbe
         private ushort WrapRing(ushort index, ushort ringSize)
         {
             return (ushort)((index + 1) & (ringSize - 1));
+        }
+
+        private int WrapRing(int index, int ringSize)
+        {
+            return (index + 1) & (ringSize - 1);
         }
     }
 }

@@ -86,7 +86,7 @@ namespace IxyCs
         }
 
         public abstract PacketBuffer[] RxBatch(int queueId, int buffersCount);
-        public abstract uint TxBatch(int queueId, PacketBuffer[] buffers);
+        public abstract int TxBatch(int queueId, PacketBuffer[] buffers);
         public abstract void ReadStats(ref DeviceStats stats);
         public abstract uint GetLinkSpeed();
         public abstract void SetPromisc(bool enabled);

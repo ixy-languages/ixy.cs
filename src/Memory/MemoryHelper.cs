@@ -123,7 +123,7 @@ namespace IxyCs.Memory
                 //In general there is some confusion on how much code should be x64 specific
                 buffer.PhysicalAddress = new IntPtr(VirtToPhys(bufAddr));
                 buffer.MempoolIndex = (int)i;
-                //TODO : Set some sort of mempool id
+                buffer.MempoolId = mempool.Id;
                 buffer.Size = 0;
             }
             return mempool;
