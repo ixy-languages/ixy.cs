@@ -9,7 +9,7 @@ namespace IxyCs.Pci
 
         public PciReader(string pciAddr, string resource)
         {
-            string path = String.Format("/sys/bus/pci/devices/{0}/resource", pciAddr);
+            string path = String.Format("/sys/bus/pci/devices/{0}/{1}", pciAddr, resource);
             _binReader = new BinaryReader(File.Open(path, FileMode.Open));
         }
 
@@ -43,7 +43,7 @@ namespace IxyCs.Pci
         private void CheckReader()
         {
             if(_binReader == null || _binReader.BaseStream == null)
-                throw new InvalidOperationException("The reader is not prepared to reader.");
+                throw new InvalidOperationException("The reader is not prepared to read.");
         }
     }
 }

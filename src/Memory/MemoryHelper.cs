@@ -11,7 +11,7 @@ namespace IxyCs.Memory
         public const int HugePageBits = 21;
         public const int HugePageSize = 1 << HugePageBits;
 
-        //TODO : This should be locked
+        //TODO : This should ideally be locked
         private static int HugePageNumber = 0;
 
         //TODO : is size correct data type?

@@ -57,7 +57,7 @@ namespace IxyCs
             } catch(Exception ex) {
                 if(ex is System.IO.IOException || ex is InvalidOperationException)
                 {
-                    Log.Error("FATAL: Could not read config file for device with given PCI address");
+                    Log.Error("FATAL: Could not read config file for device with given PCI address - {0}", ex.Message);
                     Environment.Exit(1);
                 }
                 else
@@ -119,7 +119,7 @@ namespace IxyCs
             while((current & mask) != 0)
             {
                 Log.Notice("Waiting for flags 0x{0} in register 0x{1} to clear, current value 0x{2}",
-                mask.ToString("X8"), offset.ToString("X("), current.ToString("X4"));
+                    mask.ToString("X"), offset.ToString("X"), current.ToString("X"));
                 //0.01 seconds
                 Thread.Sleep(10);
                 current = GetReg(offset);
@@ -132,7 +132,7 @@ namespace IxyCs
             while((current & mask) != mask)
             {
                 Log.Notice("Waiting for flags 0x{0} in register 0x{1} to clear, current value 0x{2}",
-                mask.ToString("X8"), offset.ToString("X("), current.ToString("X4"));
+                    mask.ToString("X"), offset.ToString("X"), current.ToString("X"));
                 Thread.Sleep(10);
                 current = GetReg(offset);
             }

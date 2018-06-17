@@ -40,7 +40,7 @@ void *dma_memory(size_t size, bool require_contiguous) {
     if(require_contiguous && size > HUGE_PAGE_SIZE)
         return NULL;
 
-    //TODO : Make sure name is unique
+    //TODO IMPLEMENT: Make sure name is unique
     char path[PATH_MAX];
     snprintf(path, PATH_MAX, "/mnt/huge/ixy-%d-%d", getpid(), 0);
     int fd = open(path, O_CREAT | O_RDWR, S_IRWXU);

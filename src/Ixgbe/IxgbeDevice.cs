@@ -49,6 +49,7 @@ namespace IxyCs.Ixgbe
             RxQueues = new IxgbeRxQueue[rxQueues];
             TxQueues = new IxgbeTxQueue[txQueues];
 
+            ResetAndInit();
         }
 
         public override uint GetLinkSpeed()
@@ -128,8 +129,6 @@ namespace IxyCs.Ixgbe
                     //TODO : May want to create hard copy of descriptor here so we know nothing will change
                     var packetBuffer = new PacketBuffer(queue.VirtualAddresses[rxIndex]);
                     packetBuffer.Size = descriptor.WbLength;
-
-                    //TODO : Double check this
 
                     //This would be the place to implement RX offloading by translating the device-specific
                     //flags to an independent representation in that buffer (similar to how DPDK works)
@@ -346,7 +345,6 @@ namespace IxyCs.Ixgbe
             SetFlags(IxgbeDefs.FCTRL, IxgbeDefs.FCTRL_BAM);
 
             //Per queue config
-            //TODO : USE NUM OF QUEUES
             for(uint i = 0; i < RxQueues.Length; i++)
             {
                 Log.Notice("Initializing rx queue {0}", i);
