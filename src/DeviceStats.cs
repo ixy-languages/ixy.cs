@@ -45,5 +45,19 @@ namespace IxyCs
             Console.WriteLine("{0} RX: {1} bytes {2} packets", Device?.PciAddress, RxBytes, RxPackets);
             Console.WriteLine("{0} TX: {1} bytes {2} packets", Device?.PciAddress, TxBytes, TxPackets);
         }
+
+        public void PrintStatsDiff(ref DeviceStats other, ulong nanos)
+        {
+            Console.WriteLine("{0} RX: {1} Mbit/s {2} Mpps",
+                this.Device?.PciAddress,
+                DiffMbit(this.RxBytes, other.RxBytes, this.RxPackets, other.RxPackets, nanos),
+                DiffMpps(this.RxPackets, other.RxPackets, nanos)
+            );
+            Console.WriteLine("{0} TX: {1} Mbit/s {2} Mpps",
+                this.Device?.PciAddress,
+                DiffMbit(this.TxBytes, other.TxBytes, this.TxPackets, other.TxPackets, nanos),
+                DiffMpps(this.TxPackets, other.TxPackets, nanos)
+            );
+        }
     }
 }
