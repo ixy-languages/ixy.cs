@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -67,6 +68,7 @@ namespace IxyCs.Ixgbe
                 case IxgbeDefs.LINKS_SPEED_10G_82599:
                     return 10000;
                 default:
+                    Log.Warning("Got unknown link speed");
                     return 0;
             }
         }
@@ -102,12 +104,19 @@ namespace IxyCs.Ixgbe
         //Try to receive a single packet if one is available, non-blocking
         //Section 7.1.9 explains RX ring structure
         //We control the tail of the queue, hardware controls the head
+        //TODO : It seems like right now, if there is no packet to be read, this function
+        //will just return an array of packetbuffers with the length buffersCount which is
+        //filled with null - this causes an error in txbatch
+        //Instead, only the actually written packetbuffers should be returned in an array
+        //If no packet can be read, an empty array should be returned
+        //Alternatively, TxBatch could also be made to deal with nulls in the packetbuffer array
         public override PacketBuffer[] RxBatch(int queueId, int buffersCount)
         {
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
 
-            var buffers = new PacketBuffer[buffersCount];
+            //var buffers = new PacketBuffer[buffersCount];
+            var buffers = new List<PacketBuffer>(buffersCount);
             var queue = (IxgbeRxQueue)RxQueues[queueId];
             ushort rxIndex = (ushort)queue.Index;
             ushort lastRxIndex = rxIndex;
@@ -119,7 +128,7 @@ namespace IxyCs.Ixgbe
 
                 uint status = descriptor.WbStatusError;
                 //Status DONE
-                if((status & IxgbeDefs.RXD_STAT_DD) != 0)
+                if((status & IxgbeDefs.RXDADV_STAT_DD) != 0)
                 {
                     //Status END OF PACKET
                     if((status & IxgbeDefs.RXDADV_STAT_EOP) == 0)
@@ -139,7 +148,7 @@ namespace IxyCs.Ixgbe
                     descriptor.PacketBufferAddress = IntPtr.Add(newBuf.PhysicalAddress, PacketBuffer.DataOffset);
                     descriptor.HeaderBufferAddress = IntPtr.Zero; //This resets the flags
                     queue.VirtualAddresses[rxIndex] = newBuf.VirtualAddress;
-                    buffers[bufInd] = packetBuffer;
+                    buffers.Add(packetBuffer);
 
                     //Want to read the next one in the next iteration but we still need the current one to update RDT later
                     lastRxIndex = rxIndex;
@@ -155,7 +164,7 @@ namespace IxyCs.Ixgbe
                 SetReg(IxgbeDefs.RDT((uint)queueId), lastRxIndex);
                 queue.Index = rxIndex;
             }
-            return buffers;
+            return buffers.ToArray();
         }
 
         public override int TxBatch(int queueId, PacketBuffer[] buffers)
@@ -214,7 +223,7 @@ namespace IxyCs.Ixgbe
             }
             queue.CleanIndex = cleanIndex;
 
-            //Step 2: SSend out as many of our packets as possible
+            //Step 2: Send out as many of our packets as possible
             uint sent;
             for(sent = 0; sent < buffers.Length; sent++)
             {

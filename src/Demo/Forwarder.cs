@@ -35,7 +35,7 @@ namespace IxyCs.src.Demo
                 var stats2Old = new DeviceStats(dev2);
 
                 //Periodically measure time
-                if((counter++ % 100000) == 0)
+                if(((counter++ % 100000) == 0) && stopWatch.ElapsedMilliseconds > 100)
                 {
                     stopWatch.Stop();
                     var nanos = stopWatch.ElapsedTicks;
@@ -58,13 +58,18 @@ namespace IxyCs.src.Demo
         {
             var rxBuffers = rxDev.RxBatch(rxQueue, BatchSize);
             //TODO: Touch all buffers
-            int txBuffCount = txDev.TxBatch(txQueue, rxBuffers);
-            //Drop unsent packets
-            for(int i = txBuffCount; i < rxBuffers.Length; i++)
+            if(rxBuffers.Length > 0)
             {
-                var buf = rxBuffers[i];
-                var pool = Mempool.FindPool(buf.MempoolId);
-                pool.FreeBuffer(buf);
+                Log.Notice("Received packets!!!");
+                int txBuffCount = txDev.TxBatch(txQueue, rxBuffers);
+
+                //Drop unsent packets
+                for(int i = txBuffCount; i < rxBuffers.Length; i++)
+                {
+                    var buf = rxBuffers[i];
+                    var pool = Mempool.FindPool(buf.MempoolId);
+                    pool.FreeBuffer(buf);
+                }
             }
 
         }

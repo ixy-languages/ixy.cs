@@ -4,6 +4,7 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using IxyCs.Ixgbe;
 using IxyCs.Memory;
+using IxyCs.src.Demo;
 
 namespace IxyCs
 {
@@ -16,7 +17,7 @@ namespace IxyCs
 
         static void Main(string[] args)
         {
-            new IxgbeDevice(args[0], 1, 1);
+            new Forwarder(args[0], args[1]);
         }
 
     }
