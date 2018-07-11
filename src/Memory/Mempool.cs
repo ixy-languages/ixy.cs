@@ -70,6 +70,21 @@ namespace IxyCs.Memory
             return new PacketBuffer(virtAddr);
         }
 
+        public PacketBuffer[] AllocatePacketBuffers(int num)
+        {
+            if(FreeStackTop < num)
+            {
+                Log.Warning("Mempool only has {0} free buffers, requested {1}", FreeStackTop, num);
+                num = (int)FreeStackTop;
+            }
+            var buffers = new PacketBuffer[num];
+            for(int i = 0; i < num; i++)
+            {
+                buffers[i] = AllocatePacketBuffer();
+            }
+            return buffers;
+        }
+
         public void FreeBuffer(PacketBuffer buffer)
         {
             Entries[FreeStackTop++] = (uint)buffer.MempoolIndex;

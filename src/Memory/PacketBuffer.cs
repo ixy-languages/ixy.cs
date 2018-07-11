@@ -24,7 +24,6 @@ namespace IxyCs.Memory
         == 64 bytes
          */
         private IntPtr _baseAddress;
-        private uint _size;
 
         /// <summary>
         /// The virtual address of the actual Packet Buffer that this object wraps

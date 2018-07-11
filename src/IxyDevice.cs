@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.IO.MemoryMappedFiles;
 using System.Threading;
 using IxyCs.Memory;
@@ -83,6 +84,18 @@ namespace IxyCs
         {
             PciMemMap?.Dispose();
             PciMemMapAccess?.Dispose();
+        }
+
+        /// <summary>
+        /// Calls TxBatch until all packets are queued with busy waiting
+        /// </summary>
+        public void TxBatchBusyWait(int queueId, PacketBuffer[] buffers)
+        {
+            int numSent = 0;
+            while(numSent < buffers.Length)
+            {
+                numSent += TxBatch(queueId, buffers.Skip(numSent).Take(buffers.Length - numSent).ToArray());
+            }
         }
 
         public abstract PacketBuffer[] RxBatch(int queueId, int buffersCount);
