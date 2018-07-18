@@ -3,7 +3,7 @@ using System.Diagnostics;
 using IxyCs.Ixgbe;
 using IxyCs.Memory;
 
-namespace IxyCs.src.Demo
+namespace IxyCs.Demo
 {
     /*
         This is a demo which shows how to use Ixy.Cs in a forwarding application

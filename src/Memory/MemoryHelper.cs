@@ -100,9 +100,8 @@ namespace IxyCs.Memory
             return new DmaMemory(virt, VirtToPhys(virt));
         }
 
-        public static Mempool AllocateMempool(uint numEntries, uint entrySize)
+        public static Mempool AllocateMempool(uint numEntries, uint entrySize = 2048)
         {
-            entrySize = (entrySize == 0) ? 2048 : entrySize;
             if(HugePageSize % entrySize != 0)
             {
                 Log.Error("FATAL: Entry size must be a divisor of the huge page size {0}", HugePageSize);
@@ -111,21 +110,7 @@ namespace IxyCs.Memory
 
             var dma = AllocateDmaC(numEntries * entrySize, false);
             var mempool = new Mempool(dma.VirtualAddress, entrySize, numEntries);
-            for(uint i = 0; i < numEntries; i++)
-            {
-                mempool.Entries[i] = i;
-
-                //Get base address of buffer in DMA memory
-                var bufAddr = IntPtr.Add(mempool.BaseAddress, (int)(i * entrySize));
-                //Instantiate wrapper object for this buffer and write to real DMA buffer
-                var buffer = new PacketBuffer(bufAddr);
-                //Maybe this shoud be a long instead of IntPtr
-                //In general there is some confusion on how much code should be x64 specific
-                buffer.PhysicalAddress = new IntPtr(VirtToPhys(bufAddr));
-                buffer.MempoolIndex = (int)i;
-                buffer.MempoolId = mempool.Id;
-                buffer.Size = 0;
-            }
+            mempool.PreallocateBuffers();
             return mempool;
         }
     }

@@ -4,7 +4,7 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using IxyCs.Ixgbe;
 using IxyCs.Memory;
-using IxyCs.src.Demo;
+using IxyCs.Demo;
 
 namespace IxyCs
 {
@@ -17,7 +17,8 @@ namespace IxyCs
 
         static void Main(string[] args)
         {
-            new Forwarder(args[0], args[1]);
+            //new Forwarder(args[0], args[1]);
+            new PacketGenerator(args[0]);
         }
 
     }

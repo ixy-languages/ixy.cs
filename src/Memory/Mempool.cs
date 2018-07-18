@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace IxyCs.Memory
 {
@@ -43,6 +44,8 @@ namespace IxyCs.Memory
         public uint FreeStackTop {get; private set;}
 
         private long _id;
+        //Pre-allocated buffer objects for this mempool
+        private Stack<PacketBuffer> _buffers;
 
         public Mempool(IntPtr baseAddr, uint bufSize, uint numEntries)
         {
@@ -55,47 +58,49 @@ namespace IxyCs.Memory
             Mempool.AddPool(this);
         }
 
-        //If writeId is true, mempool ID will be written into packet buffer
-        //You can set this to false for a minor performance increase if the id
-        //has already been written to the packet
-        public PacketBuffer AllocatePacketBuffer(bool writeId = true)
+        public void PreallocateBuffers()
         {
-            if(FreeStackTop < 1)
+            _buffers = new Stack<PacketBuffer>((int)NumEntries);
+            for(int i =(int)NumEntries - 1; i >= 0; i--)
+            {
+                var virtAddr = IntPtr.Add(BaseAddress, i * (int)BufferSize);
+                var buffer = new PacketBuffer(virtAddr);
+                //TODO: If pooling packet buffers works, buffer can actually just have mempool field
+                buffer.MempoolId = Id;
+                buffer.PhysicalAddress = new IntPtr(MemoryHelper.VirtToPhys(virtAddr));
+                buffer.MempoolIndex = i;
+                //TODO: Why is the buffer size 0 and not BufferSize?
+                buffer.Size = 0;
+                _buffers.Push(buffer);
+            }
+        }
+
+        public PacketBuffer AllocatePacketBuffer()
+        {
+            if(_buffers.Count < 1)
             {
                 Log.Warning("Memory pool is out of free buffers - ignoring request for allocation");
                 return null;
             }
-            Log.Notice("Mempool: FreeStackTop = {0}", FreeStackTop);
-            Log.Notice("Mempool: Entries Length = {0}", Entries.Length);
-            uint entryId = Entries[--FreeStackTop];
-            var virtAddr = IntPtr.Add(BaseAddress, (int)(entryId * BufferSize));
-            var buffer = new PacketBuffer(virtAddr);
-            if(writeId)
-                buffer.MempoolId = Id;
-            return buffer;
+            return _buffers.Pop();
         }
 
-        //If writeId is true, mempool ID will be written into packet buffer
-        //You can set this to false for a minor performance increase if the id
-        //has already been written to the packet
-        public PacketBuffer[] AllocatePacketBuffers(int num, bool writeId = true)
+        public PacketBuffer[] AllocatePacketBuffers(int num)
         {
-            if(FreeStackTop < num)
+            if(_buffers.Count < num)
             {
                 Log.Warning("Mempool only has {0} free buffers, requested {1}", FreeStackTop, num);
-                num = (int)FreeStackTop;
+                num = (int)_buffers.Count;
             }
-            var buffers = new PacketBuffer[num];
-            for(int i = 0; i < num; i++)
-            {
-                buffers[i] = AllocatePacketBuffer(writeId);
-            }
-            return buffers;
+            //TODO : Check if order is correct here (should probably be ascending addresses)
+            return _buffers.Take(num).ToArray();
         }
 
         public void FreeBuffer(PacketBuffer buffer)
         {
-            Entries[FreeStackTop++] = (uint)buffer.MempoolIndex;
+            //TODO: May want to have a check here whether buffer actually belongs to this mempool
+            //On the other hand, currently the mempool id can just be overriden anyway, so it's not a real guarantee
+            _buffers.Push(buffer);
         }
     }
 }
