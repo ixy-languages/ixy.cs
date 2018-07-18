@@ -55,22 +55,30 @@ namespace IxyCs.Memory
             Mempool.AddPool(this);
         }
 
-        public PacketBuffer AllocatePacketBuffer()
+        //If writeId is true, mempool ID will be written into packet buffer
+        //You can set this to false for a minor performance increase if the id
+        //has already been written to the packet
+        public PacketBuffer AllocatePacketBuffer(bool writeId = true)
         {
             if(FreeStackTop < 1)
             {
                 Log.Warning("Memory pool is out of free buffers - ignoring request for allocation");
                 return null;
             }
-
+            Log.Notice("Mempool: FreeStackTop = {0}", FreeStackTop);
+            Log.Notice("Mempool: Entries Length = {0}", Entries.Length);
             uint entryId = Entries[--FreeStackTop];
             var virtAddr = IntPtr.Add(BaseAddress, (int)(entryId * BufferSize));
             var buffer = new PacketBuffer(virtAddr);
-            buffer.MempoolId = Id;
-            return new PacketBuffer(virtAddr);
+            if(writeId)
+                buffer.MempoolId = Id;
+            return buffer;
         }
 
-        public PacketBuffer[] AllocatePacketBuffers(int num)
+        //If writeId is true, mempool ID will be written into packet buffer
+        //You can set this to false for a minor performance increase if the id
+        //has already been written to the packet
+        public PacketBuffer[] AllocatePacketBuffers(int num, bool writeId = true)
         {
             if(FreeStackTop < num)
             {
@@ -80,7 +88,7 @@ namespace IxyCs.Memory
             var buffers = new PacketBuffer[num];
             for(int i = 0; i < num; i++)
             {
-                buffers[i] = AllocatePacketBuffer();
+                buffers[i] = AllocatePacketBuffer(writeId);
             }
             return buffers;
         }

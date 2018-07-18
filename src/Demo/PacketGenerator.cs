@@ -48,7 +48,7 @@ public class PacketGenerator
 
         while(true)
         {
-            buffers = _mempool.AllocatePacketBuffers(BatchSize);
+            buffers = _mempool.AllocatePacketBuffers(BatchSize, false);
             foreach(var buf in buffers)
                 Marshal.WriteInt32(IntPtr.Add(buf.VirtualAddress, PacketSize - 4), seqNum);
             dev.TxBatchBusyWait(0, buffers);
@@ -70,13 +70,15 @@ public class PacketGenerator
     {
         _mempool = MemoryHelper.AllocateMempool(BuffersCount, 0);
 
+        //TODO : For some reason, pre-filling the buffers here prevents them from being re-written later (error when writing mempool id to buffer in allocatebuffer)
+        
         //Pre-fill all our packet buffers with some templates that can be modified later
         var buffers = new PacketBuffer[BuffersCount];
         for(int i = 0; i < BuffersCount; i++)
         {
             var buffer = _mempool.AllocatePacketBuffer();
-            buffer.Size = PacketSize;
-            Marshal.Copy(PacketData, 0, buffer.VirtualAddress, PacketData.Length);
+            buffer.Size = PacketData.Length;
+            Marshal.Copy(PacketData, 0, IntPtr.Add(buffer.VirtualAddress, PacketBuffer.DataOffset), PacketData.Length);
             var ipData = new byte[20];
             Marshal.Copy(IntPtr.Add(buffer.VirtualAddress, PacketBuffer.DataOffset + 14),
             ipData, 0, 20);
