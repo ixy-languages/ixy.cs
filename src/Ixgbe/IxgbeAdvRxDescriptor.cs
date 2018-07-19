@@ -10,7 +10,7 @@ namespace IxyCs.Ixgbe
 
         The C implementation of the descriptor is shown at the bottom of the file for reference
      */
-    public class IxgbeAdvRxDescriptor
+    public struct IxgbeAdvRxDescriptor
     {
         public const int DescriptorSize = 16;
 
@@ -57,6 +57,13 @@ namespace IxyCs.Ixgbe
 
 
         private IntPtr _baseAddress;
+
+        /// <summary>
+        /// If true, this descriptor is not (successfully) initialized
+        /// </summary>
+        public bool IsNull {get {return _baseAddress == IntPtr.Zero; }}
+
+        public static IxgbeAdvRxDescriptor Null {get {return new IxgbeAdvRxDescriptor(IntPtr.Zero);}}
 
         public IxgbeAdvRxDescriptor(IntPtr baseAddr)
         {

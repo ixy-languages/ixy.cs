@@ -65,7 +65,6 @@ namespace IxyCs.Memory
             {
                 var virtAddr = IntPtr.Add(BaseAddress, i * (int)BufferSize);
                 var buffer = new PacketBuffer(virtAddr);
-                //TODO: If pooling packet buffers works, buffer can actually just have mempool field
                 buffer.MempoolId = Id;
                 buffer.PhysicalAddress = new IntPtr(MemoryHelper.VirtToPhys(virtAddr));
                 buffer.MempoolIndex = i;
@@ -80,7 +79,7 @@ namespace IxyCs.Memory
             if(_buffers.Count < 1)
             {
                 Log.Warning("Memory pool is out of free buffers - ignoring request for allocation");
-                return null;
+                return PacketBuffer.Null;
             }
             return _buffers.Pop();
         }

@@ -23,7 +23,7 @@ namespace IxyCs.Ixgbe
         public IxgbeAdvTxDescriptor GetDescriptor(int i)
         {
             if(DescriptorsAddr == IntPtr.Zero)
-                return null;
+                return IxgbeAdvTxDescriptor.Null;
             //TODO TEST : Is pointer arithmetic correct here?
             return new IxgbeAdvTxDescriptor(IntPtr.Add(DescriptorsAddr, i * IxgbeAdvTxDescriptor.DescriptorSize));
         }

@@ -104,12 +104,6 @@ namespace IxyCs.Ixgbe
         //Try to receive a single packet if one is available, non-blocking
         //Section 7.1.9 explains RX ring structure
         //We control the tail of the queue, hardware controls the head
-        //TODO : It seems like right now, if there is no packet to be read, this function
-        //will just return an array of packetbuffers with the length buffersCount which is
-        //filled with null - this causes an error in txbatch
-        //Instead, only the actually written packetbuffers should be returned in an array
-        //If no packet can be read, an empty array should be returned
-        //Alternatively, TxBatch could also be made to deal with nulls in the packetbuffer array
         public override PacketBuffer[] RxBatch(int queueId, int buffersCount)
         {
             if(queueId < 0 || queueId >= RxQueues.Length)
@@ -123,7 +117,7 @@ namespace IxyCs.Ixgbe
             for(int bufInd = 0; bufInd < buffersCount; bufInd++)
             {
                 var descriptor = queue.GetDescriptor(rxIndex);
-                if(descriptor == null)
+                if(descriptor.IsNull)
                     throw new InvalidOperationException("Trying to read descriptor from unitialized queue");
 
                 uint status = descriptor.WbStatusError;
@@ -142,8 +136,11 @@ namespace IxyCs.Ixgbe
                     //This would be the place to implement RX offloading by translating the device-specific
                     //flags to an independent representation in that buffer (similar to how DPDK works)
                     var newBuf = queue.Mempool.AllocatePacketBuffer();
-                    if(newBuf == null)
+                    if(newBuf.IsNull)
+                    {
+                        Log.Error("Cannot allocate RX buffer - Out of memory! Either there is a memory leak, or the mempool is too small");
                         throw new OutOfMemoryException("Failed to allocate new buffer for rx - you are either leaking memory or your mempool is too small");
+                    }
 
                     descriptor.PacketBufferAddress = IntPtr.Add(newBuf.PhysicalAddress, PacketBuffer.DataOffset);
                     descriptor.HeaderBufferAddress = IntPtr.Zero; //This resets the flags
@@ -195,7 +192,7 @@ namespace IxyCs.Ixgbe
                     cleanupTo -= queue.EntriesCount;
 
                 var txDesc = queue.GetDescriptor(cleanupTo);
-                if(txDesc == null)
+                if(txDesc.IsNull)
                     throw new InvalidOperationException("Trying to read Tx descriptor from uninitialized queue");
                 uint status = txDesc.WbStatus;
 
@@ -469,7 +466,7 @@ namespace IxyCs.Ixgbe
                 var descriptor = queue.GetDescriptor(ei);
                 //Allocate packet buffer
                 var packetBuffer = queue.Mempool.AllocatePacketBuffer();
-                if(packetBuffer == null)
+                if(packetBuffer.IsNull)
                 {
                     Log.Error("Fatal: Could not allocate packet buffer");
                     Environment.Exit(1);

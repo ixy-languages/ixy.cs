@@ -10,7 +10,7 @@ namespace IxyCs.Memory
         The reason for this is that the real buffer lives in DMA memory which is written to by
         the device and requires a very specific memory layout
      */
-    public class PacketBuffer
+    public struct PacketBuffer
     {
         public const int DataOffset = 64;
         //These buffers have 64 bytes of headroom so the actual data has an offset of 64 bytes
@@ -29,6 +29,13 @@ namespace IxyCs.Memory
         /// The virtual address of the actual Packet Buffer that this object wraps
         /// </summary>
         public IntPtr VirtualAddress{ get {return _baseAddress;} }
+
+        /// <summary>
+        /// If true, this buffer is not (successfully) initialized
+        /// </summary>
+        public bool IsNull {get {return VirtualAddress == IntPtr.Zero; }}
+
+        public static PacketBuffer Null {get {return new PacketBuffer(IntPtr.Zero);}}
 
         //Physical Address, 64 bits, offset 0
         public IntPtr PhysicalAddress
@@ -61,6 +68,56 @@ namespace IxyCs.Memory
         public PacketBuffer(IntPtr baseAddr)
         {
             this._baseAddress = baseAddr;
+        }
+
+        //Sacrificing some code compactness for a nicer API
+
+        /// <summary>
+        /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
+        /// </summary>
+        public void WriteData(int offset, int val)
+        {
+            Marshal.WriteInt32(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+        }
+
+        /// <summary>
+        /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
+        /// </summary>
+        public void WriteData(int offset, short val)
+        {
+            Marshal.WriteInt16(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+        }
+
+        /// <summary>
+        /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
+        /// </summary>
+        public void WriteData(int offset, IntPtr val)
+        {
+            Marshal.WriteIntPtr(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+        }
+
+        /// <summary>
+        /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
+        /// </summary>
+        public void WriteData(int offset, long val)
+        {
+            Marshal.WriteInt64(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+        }
+
+        /// <summary>
+        /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
+        /// </summary>
+        public void WriteData(int offset, byte val)
+        {
+            Marshal.WriteByte(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+        }
+
+        /// <summary>
+        /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
+        /// </summary>
+        public void WriteData(int offset, byte[] val)
+        {
+            Marshal.Copy(val, 0, new IntPtr(DataOffset + offset), Math.Min(val.Length, Size - offset));
         }
     }
 }

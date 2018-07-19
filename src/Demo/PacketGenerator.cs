@@ -45,14 +45,13 @@ namespace IxyCs.Demo
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var buffers = new PacketBuffer[BatchSize];
             int seqNum = 0;
 
             while(true)
             {
-                buffers = _mempool.AllocatePacketBuffers(BatchSize);
+                var buffers = _mempool.AllocatePacketBuffers(BatchSize);
                 foreach(var buf in buffers)
-                    Marshal.WriteInt32(IntPtr.Add(buf.VirtualAddress, PacketSize - 4), seqNum);
+                    buf.WriteData(PacketSize - 4, seqNum++);
                 dev.TxBatchBusyWait(0, buffers);
 
                 if((counter++ & 0xFFF) == 0 && stopWatch.ElapsedMilliseconds > 100)
@@ -70,26 +69,23 @@ namespace IxyCs.Demo
 
         private void InitMempool()
         {
-            _mempool = MemoryHelper.AllocateMempool(BuffersCount, 0);
+            _mempool = MemoryHelper.AllocateMempool(BuffersCount);
 
-            //TODO : For some reason, pre-filling the buffers here prevents them from being re-written later (error when writing mempool id to buffer in allocatebuffer)
-            
             //Pre-fill all our packet buffers with some templates that can be modified later
             var buffers = new PacketBuffer[BuffersCount];
             for(int i = 0; i < BuffersCount; i++)
             {
                 var buffer = _mempool.AllocatePacketBuffer();
                 buffer.Size = PacketData.Length;
-                Marshal.Copy(PacketData, 0, IntPtr.Add(buffer.VirtualAddress, PacketBuffer.DataOffset), PacketData.Length);
+                buffer.WriteData(0, PacketData);
                 var ipData = new byte[20];
-                Marshal.Copy(IntPtr.Add(buffer.VirtualAddress, PacketBuffer.DataOffset + 14),
-                ipData, 0, 20);
-                Marshal.WriteInt16(IntPtr.Add(buffer.VirtualAddress, 
-                    PacketBuffer.DataOffset + 24), (short)CalcIpChecksum(ipData));
+                buffer.WriteData(14, ipData);
+                buffer.WriteData(24, (short)CalcIpChecksum(ipData));
                 buffers[i] = buffer;
             }
 
             //Return them all to the mempool, all future allocations will return buffers with the data set above
+            //TODO : Not sure if the order is correct here
             foreach(var buffer in buffers)
                 _mempool.FreeBuffer(buffer);
         }
