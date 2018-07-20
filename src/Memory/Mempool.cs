@@ -92,7 +92,10 @@ namespace IxyCs.Memory
                 num = (int)_buffers.Count;
             }
             //TODO : Check if order is correct here (should probably be ascending addresses)
-            return _buffers.Take(num).ToArray();
+            var buffers = new PacketBuffer[num];
+            for(int i = 0; i< num; i++)
+                buffers[i] = _buffers.Pop();
+            return buffers;
         }
 
         public void FreeBuffer(PacketBuffer buffer)

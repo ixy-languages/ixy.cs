@@ -117,7 +117,7 @@ namespace IxyCs.Memory
         /// </summary>
         public void WriteData(int offset, byte[] val)
         {
-            Marshal.Copy(val, 0, new IntPtr(DataOffset + offset), Math.Min(val.Length, Size - offset));
+            Marshal.Copy(val, 0, IntPtr.Add(VirtualAddress, DataOffset + offset), Math.Min(val.Length, Size - offset));
         }
     }
 }
