@@ -172,6 +172,10 @@ namespace IxyCs.Ixgbe
             var queue = (IxgbeTxQueue)TxQueues[queueId];
             ushort cleanIndex = queue.CleanIndex;
             ushort currentIndex = (ushort)queue.Index;
+            var cmdTypeFlags = IxgbeDefs.ADVTXD_DCMD_EOP | IxgbeDefs.ADVTXD_DCMD_RS |
+                                        IxgbeDefs.ADVTXD_DCMD_DEXT | IxgbeDefs.ADVTXD_DTYP_DATA;
+            //All packet buffers that will be handled here will belong to the same mempool
+            Mempool pool = null;
 
             //Step 1: Clean up descriptors that were sent out by the hardware and return them to the mempool
             //Start by reading step 2 which is done first for each packet
@@ -203,9 +207,12 @@ namespace IxyCs.Ixgbe
                     while(true)
                     {
                         var packetBuffer = new PacketBuffer(queue.VirtualAddresses[i]);
-                        var pool = Mempool.FindPool(packetBuffer.MempoolId);
                         if(pool == null)
-                            throw new NullReferenceException("Could not find mempool with id specified by PacketBuffer");
+                        {
+                            pool = Mempool.FindPool(packetBuffer.MempoolId);
+                            if(pool == null)
+                                throw new NullReferenceException("Could not find mempool with id specified by PacketBuffer");
+                        }
                         pool.FreeBuffer(packetBuffer);
                         if(i == cleanupTo)
                             break;
@@ -237,14 +244,13 @@ namespace IxyCs.Ixgbe
                 //NIC reads from here
                 txDesc.BufferAddr = IntPtr.Add(buffer.PhysicalAddress, PacketBuffer.DataOffset);
                 //Always the same flags: One buffer (EOP), advanced data descriptor, CRC offload, data length
-                txDesc.CmdTypeLength = (IxgbeDefs.ADVTXD_DCMD_EOP | IxgbeDefs.ADVTXD_DCMD_RS |
-                                        IxgbeDefs.ADVTXD_DCMD_DEXT | IxgbeDefs.ADVTXD_DTYP_DATA
-                                        | (uint)buffer.Size);
+                var bufSize = (uint)buffer.Size;
+                txDesc.CmdTypeLength = (cmdTypeFlags | bufSize);
                 //No fancy offloading - only the total payload length
                 //implement offloading flags here:
                 // * ip checksum offloading is trivial: just set the offset
                 // * tcp/udp checksum offloading is more annoying, you have to precalculate the pseudo-header checksum
-                txDesc.OlInfoStatus = ((uint)buffer.Size << (int)IxgbeDefs.ADVTXD_PAYLEN_SHIFT);
+                txDesc.OlInfoStatus = (bufSize << (int)IxgbeDefs.ADVTXD_PAYLEN_SHIFT);
                 currentIndex = nextIndex;
             }
 
