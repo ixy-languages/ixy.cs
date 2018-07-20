@@ -8,6 +8,13 @@ namespace IxyCs.Ixgbe
         public const int DescriptorSize = 16;
         private IntPtr _baseAddress;
 
+        public IntPtr BaseAddress
+        {
+            get { return _baseAddress;}
+            //Should only be written by queue
+            internal set {_baseAddress = value;}
+        }
+
         //read.buffer_addr - len: 8 - offs: 0
         public IntPtr BufferAddr
         {

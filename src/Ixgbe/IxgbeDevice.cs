@@ -208,15 +208,23 @@ namespace IxyCs.Ixgbe
                             throw new NullReferenceException("Could not find mempool with id specified by PacketBuffer");
                         pool.FreeBuffer(packetBuffer);
                         if(i == cleanupTo)
+                        {
+                            queue.ReturnDescriptor(txDesc);
                             break;
+                        }
                         i = WrapRing(i, queue.EntriesCount);
                     }
                     //Next descriptor to be cleaned up is one after the one we just cleaned
                     cleanIndex = WrapRing((ushort)cleanupTo, (ushort)queue.EntriesCount);
+                    queue.ReturnDescriptor(txDesc);
                 }
                 //Clean the whole batch or nothing. This will leave some packets in the queue forever
                 //if you stop transmitting but that's not a real concern
-                else {break;}
+                else
+                {
+                    queue.ReturnDescriptor(txDesc);
+                    break;
+                }
             }
             queue.CleanIndex = cleanIndex;
 
@@ -245,6 +253,7 @@ namespace IxyCs.Ixgbe
                 // * ip checksum offloading is trivial: just set the offset
                 // * tcp/udp checksum offloading is more annoying, you have to precalculate the pseudo-header checksum
                 txDesc.OlInfoStatus = ((uint)buffer.Size << (int)IxgbeDefs.ADVTXD_PAYLEN_SHIFT);
+                queue.ReturnDescriptor(txDesc);
                 currentIndex = nextIndex;
             }
 
