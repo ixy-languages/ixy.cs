@@ -38,31 +38,63 @@ namespace IxyCs.Memory
         public static PacketBuffer Null {get {return new PacketBuffer(IntPtr.Zero);}}
 
         //Physical Address, 64 bits, offset 0
-        public IntPtr PhysicalAddress
+        public unsafe IntPtr PhysicalAddress
         {
-            get {return Marshal.ReadIntPtr(_baseAddress); }
-            set {Marshal.WriteIntPtr(_baseAddress, 0, value);}
+            get
+            {
+                IntPtr *ptr = (IntPtr*)_baseAddress;
+                return *ptr;
+            }
+            set
+            {
+                IntPtr *ptr = (IntPtr*)_baseAddress;
+                *ptr = value;
+            }
         }
 
         //This id is 64 bits to keep the data as similar to the C version as possible
-        public long MempoolId
+        public unsafe long MempoolId
         {
-            get {return Marshal.ReadInt64(_baseAddress, 8);}
-            set {Marshal.WriteInt64(_baseAddress, 8, value);}
+            get
+            {
+                long *ptr = (long*)IntPtr.Add(_baseAddress, 8);
+                return *ptr;
+            }
+            set
+            {
+                long *ptr = (long*)IntPtr.Add(_baseAddress, 8);
+                *ptr = value;
+            }
         }
 
         //Mempool index, 32 bits, offset 128 bits
-        public int MempoolIndex
+        public unsafe int MempoolIndex
         {
-            get {return Marshal.ReadInt32(_baseAddress, 16);}
-            set {Marshal.WriteInt32(_baseAddress, 16, value);}
+            get
+            {
+                int *ptr = (int*)IntPtr.Add(_baseAddress, 16);
+                return *ptr;
+            }
+            set
+            {
+                int *ptr = (int*)IntPtr.Add(_baseAddress, 16);
+                *ptr = value;
+            }
         }
 
         //Size, 32 bits, offset 160 bits
-        public int Size
+        public unsafe int Size
         {
-            get {return Marshal.ReadInt32(_baseAddress, 20);}
-            set {Marshal.WriteInt32(_baseAddress, 20, value);}
+            get
+            {
+                int *ptr = (int*)IntPtr.Add(_baseAddress, 20);
+                return *ptr;
+            }
+            set
+            {
+                int *ptr = (int*)IntPtr.Add(_baseAddress, 20);
+                *ptr = value;
+            }
         }
 
         public PacketBuffer(IntPtr baseAddr)
@@ -71,53 +103,67 @@ namespace IxyCs.Memory
         }
 
         //Sacrificing some code compactness for a nicer API
-
+        //TODO: These functions should probably check if the offset is within bounds
+        //but that would require checking buffer size with each call and impact performance
         /// <summary>
         /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
         /// </summary>
-        public void WriteData(int offset, int val)
+        public unsafe void WriteData(int offset, int val)
         {
-            Marshal.WriteInt32(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+            int *ptr = (int*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            *ptr = val;
         }
 
         /// <summary>
         /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
         /// </summary>
-        public void WriteData(int offset, short val)
+        public unsafe void WriteData(int offset, short val)
         {
-            Marshal.WriteInt16(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+            short *ptr = (short*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            *ptr = val;
         }
 
         /// <summary>
         /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
         /// </summary>
-        public void WriteData(int offset, IntPtr val)
+        public unsafe void WriteData(int offset, IntPtr val)
         {
-            Marshal.WriteIntPtr(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+            IntPtr *ptr = (IntPtr*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            *ptr = val;
         }
 
         /// <summary>
         /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
         /// </summary>
-        public void WriteData(int offset, long val)
+        public unsafe void WriteData(int offset, long val)
         {
-            Marshal.WriteInt64(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+            long *ptr = (long*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            *ptr = val;
         }
 
         /// <summary>
         /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
         /// </summary>
-        public void WriteData(int offset, byte val)
+        public unsafe void WriteData(int offset, byte val)
         {
-            Marshal.WriteByte(IntPtr.Add(VirtualAddress, DataOffset + offset), val);
+            byte *ptr = (byte*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            *ptr = val;
         }
 
         /// <summary>
         /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
         /// </summary>
-        public void WriteData(int offset, byte[] val)
+        public unsafe void WriteData(int offset, byte[] val)
         {
-            Marshal.Copy(val, 0, IntPtr.Add(VirtualAddress, DataOffset + offset), Math.Min(val.Length, Size - offset));
+            if(val == null || val.Length == 0)
+                return;
+            byte *targetPtr = (byte*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            //Keep location of source array in place while copying data
+            fixed(byte* sourcePtr = val)
+            {
+                for(int i = 0; i < val.Length; i++)
+                    targetPtr[i] = sourcePtr[i];
+            }
         }
     }
 }

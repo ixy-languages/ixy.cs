@@ -94,7 +94,7 @@ namespace IxyCs.Memory
             return new DmaMemory((IntPtr)virtAddr, VirtToPhys((IntPtr)virtAddr));
         }
 
-        public unsafe static DmaMemory AllocateDmaC(uint size, bool requireContiguous)
+        public static DmaMemory AllocateDmaC(uint size, bool requireContiguous)
         {
             var virt = dma_memory(size, requireContiguous);
             return new DmaMemory(virt, VirtToPhys(virt));

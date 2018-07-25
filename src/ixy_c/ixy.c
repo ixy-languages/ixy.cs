@@ -15,25 +15,6 @@
 #define HUGE_PAGE_BITS 21
 #define HUGE_PAGE_SIZE (1 << HUGE_PAGE_BITS)
 
-uintptr_t virt_to_phys(void *virt) {
-    printf("Received pointer %p\n", virt);
-    long pagesize = sysconf(_SC_PAGESIZE);
-	int fd = open("/proc/self/pagemap", O_RDONLY);
-	// pagemap is an array of pointers for each normal-sized page
-	lseek(fd, (uintptr_t) virt / pagesize * sizeof(uintptr_t), SEEK_SET);
-	uintptr_t phy = 0;
-	read(fd, &phy, sizeof(phy));
-	close(fd);
-	if (!phy) {
-		printf("Failed to convert pointer\n");
-        return -1;
-	}
-	// bits 0-54 are the page number
-    uintptr_t phys = (phy & 0x7fffffffffffffULL) * pagesize + ((uintptr_t) virt) % pagesize;
-    printf("C function says phys pointer %lu\n", phys);
-	return phys;
-}
-
 void *dma_memory(size_t size, bool require_contiguous) {
     //size_t size = 4096*16;
     if(size % HUGE_PAGE_SIZE)

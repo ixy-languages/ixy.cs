@@ -5,9 +5,7 @@ using IxyCs.Memory;
 
 namespace IxyCs.Demo
 {
-    /*
-        This is a demo which shows how to use Ixy.Cs in a forwarding application
-     */
+    //This is a demo which shows how to use Ixy.Cs in a forwarding application
     public class Forwarder
     {
         public const int BatchSize = 32;

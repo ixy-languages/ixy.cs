@@ -47,9 +47,6 @@ namespace IxyCs.Ixgbe
                 Environment.Exit(1);
             }
 
-            RxQueues = new IxgbeRxQueue[rxQueues];
-            TxQueues = new IxgbeTxQueue[txQueues];
-
             ResetAndInit();
         }
 
