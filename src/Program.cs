@@ -17,8 +17,8 @@ namespace IxyCs
 
         static void Main(string[] args)
         {
-            //new Forwarder(args[0], args[1]);
-            new PacketGenerator(args[0]);
+            new Forwarder(args[0], args[1]);
+            //new PacketGenerator(args[0]);
         }
 
     }

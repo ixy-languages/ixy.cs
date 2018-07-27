@@ -58,7 +58,6 @@ namespace IxyCs.Demo
             //TODO: Touch all buffers
             if(rxBuffers.Length > 0)
             {
-                Log.Notice("Received packets!!!");
                 int txBuffCount = txDev.TxBatch(txQueue, rxBuffers);
 
                 //Drop unsent packets

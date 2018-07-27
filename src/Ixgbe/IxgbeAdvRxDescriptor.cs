@@ -14,42 +14,79 @@ namespace IxyCs.Ixgbe
     {
         public const int DescriptorSize = 16;
 
-        //TODO: The C version says something about little endian for all these types
-        //TODO: Marshal doesn't offer functions for uints for some reason. Converting to int is hopefully fine
-
         //read.pkt_addr - len: 8 - offs: 0
-        public IntPtr PacketBufferAddress
+        public unsafe IntPtr PacketBufferAddress
         {
-            get {return Marshal.ReadIntPtr(_baseAddress);}
-            set {Marshal.WriteIntPtr(_baseAddress,0,value);}
+            get
+            {
+                IntPtr *ptr = (IntPtr*)_baseAddress;
+                return *ptr;
+            }
+            set
+            {
+                IntPtr *ptr = (IntPtr*)_baseAddress;
+                *ptr = value;
+            }
         }
 
         //read.hdr_addr - len: 8 - offs: 8
-        public IntPtr HeaderBufferAddress
+        public unsafe IntPtr HeaderBufferAddress
         {
-            get {return Marshal.ReadIntPtr(_baseAddress, 8);}
-            set {Marshal.WriteIntPtr(_baseAddress, 8, value);}
+            get
+            {
+                IntPtr *ptr = (IntPtr*)IntPtr.Add(_baseAddress, 8);
+                return *ptr;
+            }
+            set
+            {
+                IntPtr *ptr = (IntPtr*)IntPtr.Add(_baseAddress, 8);
+                *ptr = value;
+            }
         }
 
         //wb.lower.lo_dword.data - len: 4 - offs 0
-        public uint WbData
+        public unsafe uint WbData
         {
-            get {return (uint)Marshal.ReadInt32(_baseAddress,0);}
-            set {Marshal.WriteInt32(_baseAddress,0,(int)value);}
+           get
+            {
+                uint *ptr = (uint*)_baseAddress;
+                return *ptr;
+            }
+            set
+            {
+                uint *ptr = (uint*)_baseAddress;
+                *ptr = value;
+            }
         }
 
         //wb.upper.status_error - len: 4 - offs 8
-        public uint WbStatusError
+        public unsafe uint WbStatusError
         {
-            get {return (uint)Marshal.ReadInt32(_baseAddress, 8);}
-            set {Marshal.WriteInt32(_baseAddress, 8, (int)value);}
+            get
+            {
+                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 8);
+                return *ptr;
+            }
+            set
+            {
+                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 8);
+                *ptr = value;
+            }
         }
 
         //wb.upper.length - len: 2 - offs: 12
-        public ushort WbLength
+        public unsafe ushort WbLength
         {
-            get {return (ushort)Marshal.ReadInt16(_baseAddress, 12);}
-            set {Marshal.WriteInt16(_baseAddress, 12, (short)value);}
+            get
+            {
+                ushort *ptr = (ushort*)IntPtr.Add(_baseAddress, 12);
+                return *ptr;
+            }
+            set
+            {
+                ushort *ptr = (ushort*)IntPtr.Add(_baseAddress, 12);
+                *ptr = value;
+            }
         }
 
         //TODO: Some more fields..

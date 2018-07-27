@@ -9,31 +9,55 @@ namespace IxyCs.Ixgbe
         private IntPtr _baseAddress;
 
         //read.buffer_addr - len: 8 - offs: 0
-        public IntPtr BufferAddr
+        public unsafe IntPtr BufferAddr
         {
-            get {return Marshal.ReadIntPtr(_baseAddress, 0);}
-            set {Marshal.WriteIntPtr(_baseAddress, 0, value);}
+            get
+            {
+                IntPtr *ptr = (IntPtr*)_baseAddress;
+                return *ptr;
+            }
+            set
+            {
+                IntPtr *ptr = (IntPtr*)_baseAddress;
+                *ptr = value;
+            }
         }
 
         //read.cmd_type_len - len: 4 - offs: 8
-        public uint CmdTypeLength
+        public unsafe uint CmdTypeLength
         {
-            get {return (uint)Marshal.ReadInt32(_baseAddress, 8);}
-            set {Marshal.WriteInt32(_baseAddress, 8, (int)value);}
+            get
+            {
+                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 8);
+                return *ptr;
+            }
+            set
+            {
+                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 8);
+                *ptr = value;
+            }
         }
 
         //read.olinfo_status - len: 4 - offs: 12
-        public uint OlInfoStatus
+        public unsafe uint OlInfoStatus
         {
-            get {return (uint)Marshal.ReadInt32(_baseAddress, 12);}
-            set {Marshal.WriteInt32(_baseAddress, 12, (int)value);}
+            get
+            {
+                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 12);
+                return *ptr;
+            }
+            set
+            {
+                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 12);
+                *ptr = value;
+            }
         }
 
         //wb.status - len: 4 - offs: 12
-        public uint WbStatus
+        public unsafe uint WbStatus
         {
-            get {return (uint)Marshal.ReadInt32(_baseAddress, 12);}
-            set {Marshal.WriteInt32(_baseAddress, 12, (int)value);}
+            get {return OlInfoStatus;}
+            set {OlInfoStatus = value;}
         }
 
         /// <summary>
