@@ -165,5 +165,15 @@ namespace IxyCs.Memory
                     targetPtr[i] = sourcePtr[i];
             }
         }
+
+        /// <summary>
+        /// Returns a copy of the buffer's payload
+        /// </summary>
+        public byte[] CopyData()
+        {
+            var cpy = new byte[Size - DataOffset];
+            Marshal.Copy(IntPtr.Add(_baseAddress, DataOffset), cpy, 0, cpy.Length);
+            return cpy;
+        }
     }
 }
