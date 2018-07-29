@@ -235,6 +235,11 @@ namespace IxyCs.Ixgbe
                     break;
 
                 var buffer = buffers[sent];
+                if(buffer.Size == 84)
+                {
+                    Console.WriteLine("Sending 84 byte packet...");
+                    buffer.DebugPrint();
+                }
                 //Remember virtual address to clean it up later
                 queue.VirtualAddresses[currentIndex] = buffer.VirtualAddress;
                 queue.Index = WrapRing(queue.Index, queue.EntriesCount);

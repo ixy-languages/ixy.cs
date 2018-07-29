@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using IxyCs;
@@ -7,9 +8,9 @@ using IxyCs.Memory;
 
 namespace IxyCs.Demo
 {
-    public class PacketGenerator
+    public class PacketChecker
     {
-        private const int BuffersCount = 2048;
+        private const int BuffersCount = 64;
         private const int PacketSize = 60;
         private const int BatchSize = 64;
 
@@ -32,37 +33,57 @@ namespace IxyCs.Demo
             // rest of the payload is zero-filled because mempools guarantee empty bufs
         };
 
+        //24 random bytes of extra data to simulate how a timestamped packet might look
+        private readonly byte[] ExtraData = new byte[] {
+            0x00, 0x01, 0x02, 0x03, 0x03, 0x05, 0x06, 0x07,
+            0xA0, 0xA1, 0xA2, 0xA3, 0xA3, 0xA5, 0xA6, 0xA7,
+            0xB0, 0xB1, 0xB2, 0xB3, 0xB3, 0xB5, 0xB6, 0xB7,
+        };
+
         private Mempool _mempool;
 
-        public PacketGenerator(string pciAddr)
+        public PacketChecker(string pciAddr, string mode)
         {
-            InitMempool();
+            if(mode == "rx")
+                RecPackets(pciAddr);
+            else
+                SendPackets(pciAddr);
+        }
+
+        private void SendPackets(string pciAddr)
+        {
             var dev = new IxgbeDevice(pciAddr, 1, 1);
-
-            var statsOld = new DeviceStats(dev);
-            var statsNew = new DeviceStats(dev);
-            ulong counter = 0;
-            var stopWatch = new Stopwatch();
-            stopWatch.Start();
-
+            InitMempool();
+            var buffers = _mempool.GetPacketBuffers(BatchSize);
             int seqNum = 0;
+            foreach(var buf in buffers)
+            {
+                buf.WriteData(PacketSize - 4, seqNum++);
+                if(buf.Size == 84)
+                    Console.WriteLine("Large buffer has seq num {0}", seqNum - 1);
+            }
+            dev.TxBatchBusyWait(0, buffers);
+        }
 
+        private void RecPackets(string pciAddr)
+        {
+            Console.WriteLine("Waiting for packets...");
+            var dev = new IxgbeDevice(pciAddr, 1, 1);
             while(true)
             {
-                var buffers = _mempool.GetPacketBuffers(BatchSize);
-                foreach(var buf in buffers)
-                    buf.WriteData(PacketSize - 4, seqNum++);
-                dev.TxBatchBusyWait(0, buffers);
-
-                if((counter++ & 0xFFF) == 0 && stopWatch.ElapsedMilliseconds > 100)
+                var buffers = dev.RxBatch(0, BatchSize);
+                if(buffers.Length < 1)
+                    continue;
+                Console.WriteLine("Received {0} packets", buffers.Length);
+                var sizes = buffers.Select(buf => buf.Size).Distinct();
+                Console.WriteLine("Buffer sizes are: ", string.Join("/", sizes));
+                var large = buffers.Where(buf => buf.Size == 84);
+                Console.WriteLine("{0} 84 byte packets received", large.Count());
+                if(large.Count() != 0)
                 {
-                    stopWatch.Stop();
-                    var nanos = stopWatch.ElapsedTicks;
-                    dev.ReadStats(ref statsNew);
-                    statsNew.PrintStatsDiff(ref statsOld, (ulong)nanos);
-                    statsOld = statsNew;
-                    counter = 0;
-                    stopWatch.Restart();
+                    var buf = large.First();
+                    buf.DebugPrint();
+                    return;
                 }
             }
         }
@@ -76,8 +97,11 @@ namespace IxyCs.Demo
             for(int i = 0; i < BuffersCount; i++)
             {
                 var buffer = _mempool.GetPacketBuffer();
-                buffer.Size = PacketData.Length;
+                //One random packet has additional data
+                buffer.Size = (i == 50) ? PacketData.Length + ExtraData.Length : PacketData.Length;
                 buffer.WriteData(0, PacketData);
+                if(i == 50)
+                    buffer.WriteData(PacketData.Length, ExtraData);
                 var ipData = buffer.CopyData(14, 20);
                 buffer.WriteData(24, (short)CalcIpChecksum(ipData));
                 buffers[i] = buffer;

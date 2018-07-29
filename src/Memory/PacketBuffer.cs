@@ -171,8 +171,13 @@ namespace IxyCs.Memory
         /// </summary>
         public byte[] CopyData()
         {
-            var cpy = new byte[Size];
-            Marshal.Copy(IntPtr.Add(_baseAddress, DataOffset), cpy, 0, cpy.Length);
+            return CopyData(0, (uint)Size);
+        }
+
+        public byte[] CopyData(uint offset, uint length)
+        {
+            var cpy = new byte[length];
+            Marshal.Copy(IntPtr.Add(_baseAddress, DataOffset + (int)offset), cpy, 0, cpy.Length);
             return cpy;
         }
 
