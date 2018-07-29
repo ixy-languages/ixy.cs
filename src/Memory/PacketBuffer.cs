@@ -175,5 +175,19 @@ namespace IxyCs.Memory
             Marshal.Copy(IntPtr.Add(_baseAddress, DataOffset), cpy, 0, cpy.Length);
             return cpy;
         }
+
+        /// <summary>
+        /// Debug function which prints the buffers header and payload
+        /// </summary>
+        public void DebugPrint()
+        {
+            Console.WriteLine("===Packet Buffer===");
+            Console.WriteLine("Virtual Address: {0}", VirtualAddress.ToInt64().ToString("0:X8"));
+            Console.WriteLine("Physical Address: {0}", PhysicalAddress.ToInt64().ToString("0:X8"));
+            var header = new byte[64];
+            Marshal.Copy(_baseAddress, header, 0, 64);
+            Console.WriteLine("Header:\n{0}\n", BitConverter.ToString(header));
+            Console.WriteLine("Data:\n{0}\n", BitConverter.ToString(CopyData()));
+        }
     }
 }
