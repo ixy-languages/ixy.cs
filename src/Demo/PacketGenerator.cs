@@ -49,7 +49,7 @@ namespace IxyCs.Demo
 
             while(true)
             {
-                var buffers = _mempool.AllocatePacketBuffers(BatchSize);
+                var buffers = _mempool.GetPacketBuffers(BatchSize);
                 foreach(var buf in buffers)
                     buf.WriteData(PacketSize - 4, seqNum++);
                 dev.TxBatchBusyWait(0, buffers);
@@ -75,7 +75,7 @@ namespace IxyCs.Demo
             var buffers = new PacketBuffer[BuffersCount];
             for(int i = 0; i < BuffersCount; i++)
             {
-                var buffer = _mempool.AllocatePacketBuffer();
+                var buffer = _mempool.GetPacketBuffer();
                 buffer.Size = PacketData.Length;
                 buffer.WriteData(0, PacketData);
                 var ipData = new byte[20];

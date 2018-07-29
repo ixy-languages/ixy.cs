@@ -41,6 +41,7 @@ namespace IxyCs.Memory
             return (physical & 0x7fffffffffffffL) * pageSize + virt.ToInt64() % pageSize;
         }
 
+        //NOT WORKING - USE AllocateDmaC INSTEAD
         public unsafe static DmaMemory AllocateDma(int size, bool requireContiguous)
         {
             //Round up to multiples of 2MB
@@ -90,7 +91,6 @@ namespace IxyCs.Memory
             //BUG: VirtToPhys doesn't seem to work for our mmap pointer
             //(although pointer is valid and VirtToPhys works on pointers allocated with AlocHGlobal)
             //might need to call this entire function in C, unfortunately
-            //Reason might be that pointer from MemoryMappedFile is already physical?
             return new DmaMemory((IntPtr)virtAddr, VirtToPhys((IntPtr)virtAddr));
         }
 

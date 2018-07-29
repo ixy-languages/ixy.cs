@@ -91,8 +91,6 @@ namespace IxyCs.Ixgbe
 
         //TODO: Some more fields..
 
-
-
         private IntPtr _baseAddress;
 
         /// <summary>

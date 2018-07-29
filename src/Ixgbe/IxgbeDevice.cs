@@ -132,7 +132,7 @@ namespace IxyCs.Ixgbe
 
                     //This would be the place to implement RX offloading by translating the device-specific
                     //flags to an independent representation in that buffer (similar to how DPDK works)
-                    var newBuf = queue.Mempool.AllocatePacketBuffer();
+                    var newBuf = queue.Mempool.GetPacketBuffer();
                     if(newBuf.IsNull)
                     {
                         Log.Error("Cannot allocate RX buffer - Out of memory! Either there is a memory leak, or the mempool is too small");
@@ -210,6 +210,7 @@ namespace IxyCs.Ixgbe
                             if(pool == null)
                                 throw new NullReferenceException("Could not find mempool with id specified by PacketBuffer");
                         }
+                        //TODO: We are freeing a packet buffer object which the mempool did not allocate. Check if buffer count stays constant
                         pool.FreeBuffer(packetBuffer);
                         if(i == cleanupTo)
                             break;
@@ -449,10 +450,10 @@ namespace IxyCs.Ixgbe
             SetReg(IxgbeDefs.DMATXCTL, IxgbeDefs.DMATXCTL_TE);
         }
 
-        private void StartRxQueue(int i)
+        private void StartRxQueue(int queueId)
         {
-            Log.Notice("Starting RX queue {0}", i);
-            var queue = (IxgbeRxQueue)RxQueues[i];
+            Log.Notice("Starting RX queue {0}", queueId);
+            var queue = (IxgbeRxQueue)RxQueues[queueId];
             //Mempool should be >= number of rx and tx descriptors
             uint mempoolSize = NumRxQueueEntries + NumTxQueueEntries;
             queue.Mempool = MemoryHelper.AllocateMempool(mempoolSize < 4096 ? 4096 : mempoolSize, 2048);
@@ -468,7 +469,7 @@ namespace IxyCs.Ixgbe
                 Log.Notice("Setting up descriptor at index #{0}", ei);
                 var descriptor = queue.GetDescriptor(ei);
                 //Allocate packet buffer
-                var packetBuffer = queue.Mempool.AllocatePacketBuffer();
+                var packetBuffer = queue.Mempool.GetPacketBuffer();
                 if(packetBuffer.IsNull)
                 {
                     Log.Error("Fatal: Could not allocate packet buffer");
@@ -480,13 +481,13 @@ namespace IxyCs.Ixgbe
             }
 
             //Enable queue and wait if necessary
-            SetFlags(IxgbeDefs.RXDCTL((uint)i), IxgbeDefs.RXDCTL_ENABLE);
-            WaitSetReg(IxgbeDefs.RXDCTL((uint)i), IxgbeDefs.RXDCTL_ENABLE);
+            SetFlags(IxgbeDefs.RXDCTL((uint)queueId), IxgbeDefs.RXDCTL_ENABLE);
+            WaitSetReg(IxgbeDefs.RXDCTL((uint)queueId), IxgbeDefs.RXDCTL_ENABLE);
 
             //Rx queue starts out full
-            SetReg(IxgbeDefs.RDH((uint)i), 0);
+            SetReg(IxgbeDefs.RDH((uint)queueId), 0);
             //Was set to 0 before in the init function
-            SetReg(IxgbeDefs.RDT((uint)i), (uint)(queue.EntriesCount - 1));
+            SetReg(IxgbeDefs.RDT((uint)queueId), (uint)(queue.EntriesCount - 1));
         }
 
         private void StartTxQueue(int queueId)

@@ -68,7 +68,6 @@ namespace IxyCs.Demo
                     pool.FreeBuffer(buf);
                 }
             }
-
         }
     }
 }

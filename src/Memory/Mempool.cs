@@ -6,7 +6,6 @@ namespace IxyCs.Memory
 {
     public class Mempool
     {
-        //TODO : Pool management can be cleaned up a little
         //Static mempool management - this is necessary because PacketBuffers need to reference
         //mempools and we can't save references to managed memory in DMA
         public static readonly List<Mempool> Pools = new List<Mempool>();
@@ -22,7 +21,7 @@ namespace IxyCs.Memory
             Pools.Add(pool);
         }
         private static bool ValidId(long id) {return FindPool(id) == null;}
-
+        //---End of static management
 
         public readonly IntPtr BaseAddress;
         public readonly uint BufferSize, NumEntries;
@@ -40,8 +39,6 @@ namespace IxyCs.Memory
                     throw new ArgumentException("This mempool id is already in use");
             }
         }
-        public uint[] Entries;
-        public uint FreeStackTop {get; private set;}
 
         private long _id;
         //Pre-allocated buffer objects for this mempool
@@ -52,8 +49,6 @@ namespace IxyCs.Memory
             this.BaseAddress = baseAddr;
             this.BufferSize = bufSize;
             this.NumEntries = numEntries;
-            this.FreeStackTop = numEntries;
-            this.Entries = new uint[numEntries];
             //Register this mempool to static list of pools
             Mempool.AddPool(this);
         }
@@ -68,13 +63,12 @@ namespace IxyCs.Memory
                 buffer.MempoolId = Id;
                 buffer.PhysicalAddress = new IntPtr(MemoryHelper.VirtToPhys(virtAddr));
                 buffer.MempoolIndex = i;
-                //TODO: Why is the buffer size 0 and not BufferSize?
                 buffer.Size = 0;
                 _buffers.Push(buffer);
             }
         }
 
-        public PacketBuffer AllocatePacketBuffer()
+        public PacketBuffer GetPacketBuffer()
         {
             if(_buffers.Count < 1)
             {
@@ -84,11 +78,11 @@ namespace IxyCs.Memory
             return _buffers.Pop();
         }
 
-        public PacketBuffer[] AllocatePacketBuffers(int num)
+        public PacketBuffer[] GetPacketBuffers(int num)
         {
             if(_buffers.Count < num)
             {
-                Log.Warning("Mempool only has {0} free buffers, requested {1}", FreeStackTop, num);
+                Log.Warning("Mempool only has {0} free buffers, requested {1}", _buffers.Count, num);
                 num = (int)_buffers.Count;
             }
             //TODO : Check if order is correct here (should probably be ascending addresses)
