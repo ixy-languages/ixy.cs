@@ -17,14 +17,13 @@ namespace IxyCs
 
         static void Main(string[] args)
         {
-            new PacketChecker(args[0], args[1]);
-            /*if(args[0] == "fwd")
+            if(args[0] == "fwd")
                 new Forwarder(args[1], args[2]);
             else if(args[0] == "pktgen")
                 new PacketGenerator(args[1]);
             else
                 Console.WriteLine("Usage:\nIxyCs.exe fwd pci_1 pci_2 Or:\nIxyCs.exe pktgen pci_1");
-            */
+
         }
 
     }
