@@ -169,7 +169,7 @@ namespace IxyCs.Ixgbe
             var queue = (IxgbeTxQueue)TxQueues[queueId];
             ushort cleanIndex = queue.CleanIndex;
             ushort currentIndex = (ushort)queue.Index;
-            var cmdTypeFlags = IxgbeDefs.ADVTXD_DCMD_EOP | IxgbeDefs.ADVTXD_DCMD_RS |
+            var cmdTypeFlags = IxgbeDefs.ADVTXD_DCMD_EOP | IxgbeDefs.ADVTXD_DCMD_RS | IxgbeDefs.ADVTXD_DCMD_IFCS |
                                         IxgbeDefs.ADVTXD_DCMD_DEXT | IxgbeDefs.ADVTXD_DTYP_DATA;
             //All packet buffers that will be handled here will belong to the same mempool
             Mempool pool = null;
