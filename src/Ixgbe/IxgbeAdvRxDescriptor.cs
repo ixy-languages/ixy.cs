@@ -15,31 +15,31 @@ namespace IxyCs.Ixgbe
         public const int DescriptorSize = 16;
 
         //read.pkt_addr - len: 8 - offs: 0
-        public unsafe IntPtr PacketBufferAddress
+        public unsafe long PacketBufferAddress
         {
             get
             {
-                IntPtr *ptr = (IntPtr*)_baseAddress;
+                long *ptr = (long*)_baseAddress;
                 return *ptr;
             }
             set
             {
-                IntPtr *ptr = (IntPtr*)_baseAddress;
+                long *ptr = (long*)_baseAddress;
                 *ptr = value;
             }
         }
 
         //read.hdr_addr - len: 8 - offs: 8
-        public unsafe IntPtr HeaderBufferAddress
+        public unsafe long HeaderBufferAddress
         {
             get
             {
-                IntPtr *ptr = (IntPtr*)IntPtr.Add(_baseAddress, 8);
+                long *ptr = (long*)(_baseAddress + 8);
                 return *ptr;
             }
             set
             {
-                IntPtr *ptr = (IntPtr*)IntPtr.Add(_baseAddress, 8);
+                long *ptr = (long*)(_baseAddress + 8);
                 *ptr = value;
             }
         }
@@ -64,12 +64,12 @@ namespace IxyCs.Ixgbe
         {
             get
             {
-                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 8);
+                uint *ptr = (uint*)(_baseAddress + 8);
                 return *ptr;
             }
             set
             {
-                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 8);
+                uint *ptr = (uint*)(_baseAddress + 8);
                 *ptr = value;
             }
         }
@@ -79,28 +79,28 @@ namespace IxyCs.Ixgbe
         {
             get
             {
-                ushort *ptr = (ushort*)IntPtr.Add(_baseAddress, 12);
+                ushort *ptr = (ushort*)(_baseAddress + 12);
                 return *ptr;
             }
             set
             {
-                ushort *ptr = (ushort*)IntPtr.Add(_baseAddress, 12);
+                ushort *ptr = (ushort*)(_baseAddress + 12);
                 *ptr = value;
             }
         }
 
         //TODO: Some more fields..
 
-        private IntPtr _baseAddress;
+        private long _baseAddress;
 
         /// <summary>
         /// If true, this descriptor is not (successfully) initialized
         /// </summary>
-        public bool IsNull {get {return _baseAddress == IntPtr.Zero; }}
+        public bool IsNull {get {return _baseAddress == 0; }}
 
-        public static IxgbeAdvRxDescriptor Null {get {return new IxgbeAdvRxDescriptor(IntPtr.Zero);}}
+        public static IxgbeAdvRxDescriptor Null {get {return new IxgbeAdvRxDescriptor(0);}}
 
-        public IxgbeAdvRxDescriptor(IntPtr baseAddr)
+        public IxgbeAdvRxDescriptor(long baseAddr)
         {
             this._baseAddress = baseAddr;
         }

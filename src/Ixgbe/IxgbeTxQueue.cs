@@ -4,16 +4,16 @@ namespace IxyCs.Ixgbe
 {
     public class IxgbeTxQueue : IxyQueue
     {
-        public IntPtr[] VirtualAddresses;
-        public IntPtr DescriptorsAddr {get; set;}
+        public long[] VirtualAddresses;
+        public long DescriptorsAddr {get; set;}
         public ushort CleanIndex {get; set;}
 
 
         public IxgbeTxQueue(int entriesCount)
             :base(entriesCount)
         {
-            this.VirtualAddresses = new IntPtr[entriesCount];
-            DescriptorsAddr = IntPtr.Zero;
+            this.VirtualAddresses = new long[entriesCount];
+            DescriptorsAddr = 0;
             CleanIndex = 0;
         }
 
@@ -22,9 +22,9 @@ namespace IxyCs.Ixgbe
         /// </summary>
         public IxgbeAdvTxDescriptor GetDescriptor(int i)
         {
-            if(DescriptorsAddr == IntPtr.Zero)
+            if(DescriptorsAddr == 0)
                 return IxgbeAdvTxDescriptor.Null;
-            return new IxgbeAdvTxDescriptor(IntPtr.Add(DescriptorsAddr, i * IxgbeAdvTxDescriptor.DescriptorSize));
+            return new IxgbeAdvTxDescriptor(DescriptorsAddr + i * IxgbeAdvTxDescriptor.DescriptorSize);
         }
     }
 }

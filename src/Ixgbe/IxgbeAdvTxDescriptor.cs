@@ -5,19 +5,19 @@ namespace IxyCs.Ixgbe
     public struct IxgbeAdvTxDescriptor
     {
         public const int DescriptorSize = 16;
-        private IntPtr _baseAddress;
+        private long _baseAddress;
 
         //read.buffer_addr - len: 8 - offs: 0
-        public unsafe IntPtr BufferAddr
+        public unsafe long BufferAddr
         {
             get
             {
-                IntPtr *ptr = (IntPtr*)_baseAddress;
+                long *ptr = (long*)_baseAddress;
                 return *ptr;
             }
             set
             {
-                IntPtr *ptr = (IntPtr*)_baseAddress;
+                long *ptr = (long*)_baseAddress;
                 *ptr = value;
             }
         }
@@ -27,12 +27,12 @@ namespace IxyCs.Ixgbe
         {
             get
             {
-                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 8);
+                uint *ptr = (uint*)(_baseAddress + 8);
                 return *ptr;
             }
             set
             {
-                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 8);
+                uint *ptr = (uint*)(_baseAddress + 8);
                 *ptr = value;
             }
         }
@@ -42,12 +42,12 @@ namespace IxyCs.Ixgbe
         {
             get
             {
-                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 12);
+                uint *ptr = (uint*)(_baseAddress + 12);
                 return *ptr;
             }
             set
             {
-                uint *ptr = (uint*)IntPtr.Add(_baseAddress, 12);
+                uint *ptr = (uint*)(_baseAddress + 12);
                 *ptr = value;
             }
         }
@@ -62,11 +62,11 @@ namespace IxyCs.Ixgbe
         /// <summary>
         /// If true, this descriptor is not (successfully) initialized
         /// </summary>
-        public bool IsNull {get {return _baseAddress == IntPtr.Zero; }}
+        public bool IsNull {get {return _baseAddress == 0; }}
 
-        public static IxgbeAdvTxDescriptor Null {get {return new IxgbeAdvTxDescriptor(IntPtr.Zero);}}
+        public static IxgbeAdvTxDescriptor Null {get {return new IxgbeAdvTxDescriptor(0);}}
 
-        public IxgbeAdvTxDescriptor(IntPtr baseAddr)
+        public IxgbeAdvTxDescriptor(long baseAddr)
         {
             this._baseAddress = baseAddr;
         }

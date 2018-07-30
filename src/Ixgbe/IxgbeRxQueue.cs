@@ -5,15 +5,15 @@ namespace IxyCs.Ixgbe
 {
     public class IxgbeRxQueue : IxyQueue
     {
-        public IntPtr[] VirtualAddresses;
-        public IntPtr DescriptorsAddr {get; set;}
+        public long[] VirtualAddresses;
+        public long DescriptorsAddr {get; set;}
         public Mempool Mempool {get; set;}
 
         public IxgbeRxQueue(int entriesCount)
             :base(entriesCount)
         {
-            this.VirtualAddresses = new IntPtr[entriesCount];
-            DescriptorsAddr = IntPtr.Zero;
+            this.VirtualAddresses = new long[entriesCount];
+            DescriptorsAddr = 0;
         }
 
         /// <summary>
@@ -21,9 +21,9 @@ namespace IxyCs.Ixgbe
         /// </summary>
         public IxgbeAdvRxDescriptor GetDescriptor(int i)
         {
-            if(DescriptorsAddr == IntPtr.Zero)
+            if(DescriptorsAddr == 0)
                 return IxgbeAdvRxDescriptor.Null;
-            return new IxgbeAdvRxDescriptor(IntPtr.Add(DescriptorsAddr, i * IxgbeAdvRxDescriptor.DescriptorSize));
+            return new IxgbeAdvRxDescriptor(DescriptorsAddr + i * IxgbeAdvRxDescriptor.DescriptorSize);
         }
 
     }

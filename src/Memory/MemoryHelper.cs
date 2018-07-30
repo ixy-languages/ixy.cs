@@ -11,14 +11,12 @@ namespace IxyCs.Memory
         public const int HugePageBits = 21;
         public const int HugePageSize = 1 << HugePageBits;
 
-        //TODO : This should ideally be locked
-        private static int HugePageNumber = 0;
+        //private static int HugePageNumber = 0;
 
-        //TODO : is size correct data type?
         [DllImport("ixy_c.so")]
-        public static extern IntPtr dma_memory(uint size, bool requireContiguous);
+        public static extern long dma_memory(uint size, bool requireContiguous);
 
-        public static long VirtToPhys(IntPtr virt)
+        public static long VirtToPhys(long virt)
         {
             long pageSize = Environment.SystemPageSize;
             long physical = 0;
@@ -27,7 +25,7 @@ namespace IxyCs.Memory
             {
                 using(BinaryReader reader = new BinaryReader(File.Open("/proc/self/pagemap", FileMode.Open)))
                 {
-                    long pos = virt.ToInt64() / pageSize * sizeof(long);
+                    long pos = virt / pageSize * sizeof(long);
                     reader.BaseStream.Seek(pos,
                     SeekOrigin.Begin);
                     physical = reader.ReadInt64();
@@ -38,10 +36,11 @@ namespace IxyCs.Memory
                 Log.Error("FATAL: Could not translate virtual address {0:X} to physical address. - {1}", virt, ex.Message);
                 Environment.Exit(1);
             }
-            return (physical & 0x7fffffffffffffL) * pageSize + virt.ToInt64() % pageSize;
+            return (physical & 0x7fffffffffffffL) * pageSize + virt % pageSize;
         }
 
         //NOT WORKING - USE AllocateDmaC INSTEAD
+        /*
         public unsafe static DmaMemory AllocateDma(int size, bool requireContiguous)
         {
             //Round up to multiples of 2MB
@@ -91,8 +90,9 @@ namespace IxyCs.Memory
             //BUG: VirtToPhys doesn't seem to work for our mmap pointer
             //(although pointer is valid and VirtToPhys works on pointers allocated with AlocHGlobal)
             //might need to call this entire function in C, unfortunately
-            return new DmaMemory((IntPtr)virtAddr, VirtToPhys((IntPtr)virtAddr));
+            return new DmaMemory((long)virtAddr, VirtToPhys(virtAddr));
         }
+        */
 
         public static DmaMemory AllocateDmaC(uint size, bool requireContiguous)
         {

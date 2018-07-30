@@ -139,8 +139,8 @@ namespace IxyCs.Ixgbe
                         throw new OutOfMemoryException("Failed to allocate new buffer for rx - you are either leaking memory or your mempool is too small");
                     }
 
-                    descriptor.PacketBufferAddress = IntPtr.Add(newBuf.PhysicalAddress, PacketBuffer.DataOffset);
-                    descriptor.HeaderBufferAddress = IntPtr.Zero; //This resets the flags
+                    descriptor.PacketBufferAddress = newBuf.PhysicalAddress + PacketBuffer.DataOffset;
+                    descriptor.HeaderBufferAddress = 0; //This resets the flags
                     queue.VirtualAddresses[rxIndex] = newBuf.VirtualAddress;
                     buffers.Add(packetBuffer);
 
@@ -245,7 +245,7 @@ namespace IxyCs.Ixgbe
                 queue.Index = WrapRing(queue.Index, queue.EntriesCount);
                 var txDesc = queue.GetDescriptor(currentIndex);
                 //NIC reads from here
-                txDesc.BufferAddr = IntPtr.Add(buffer.PhysicalAddress, PacketBuffer.DataOffset);
+                txDesc.BufferAddr = buffer.PhysicalAddress + PacketBuffer.DataOffset;
                 //Always the same flags: One buffer (EOP), advanced data descriptor, CRC offload, data length
                 var bufSize = (uint)buffer.Size;
                 txDesc.CmdTypeLength = (cmdTypeFlags | bufSize);
@@ -480,8 +480,8 @@ namespace IxyCs.Ixgbe
                     Log.Error("Fatal: Could not allocate packet buffer");
                     Environment.Exit(1);
                 }
-                descriptor.PacketBufferAddress = IntPtr.Add(packetBuffer.PhysicalAddress, PacketBuffer.DataOffset);
-                descriptor.HeaderBufferAddress = IntPtr.Zero;
+                descriptor.PacketBufferAddress = packetBuffer.PhysicalAddress + PacketBuffer.DataOffset;
+                descriptor.HeaderBufferAddress = 0;
                 queue.VirtualAddresses[ei] = packetBuffer.VirtualAddress;
             }
 

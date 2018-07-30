@@ -23,7 +23,7 @@ namespace IxyCs.Memory
         private static bool ValidId(long id) {return FindPool(id) == null;}
         //---End of static management
 
-        public readonly IntPtr BaseAddress;
+        public readonly long BaseAddress;
         public readonly uint BufferSize, NumEntries;
         /// <summary>
         /// Is used to identify the mempool so that PacketBuffers can reference them
@@ -44,7 +44,7 @@ namespace IxyCs.Memory
         //Pre-allocated buffer objects for this mempool
         private Stack<PacketBuffer> _buffers;
 
-        public Mempool(IntPtr baseAddr, uint bufSize, uint numEntries)
+        public Mempool(long baseAddr, uint bufSize, uint numEntries)
         {
             this.BaseAddress = baseAddr;
             this.BufferSize = bufSize;
@@ -58,10 +58,10 @@ namespace IxyCs.Memory
             _buffers = new Stack<PacketBuffer>((int)NumEntries);
             for(int i =(int)NumEntries - 1; i >= 0; i--)
             {
-                var virtAddr = IntPtr.Add(BaseAddress, i * (int)BufferSize);
+                var virtAddr = BaseAddress + i * BufferSize;
                 var buffer = new PacketBuffer(virtAddr);
                 buffer.MempoolId = Id;
-                buffer.PhysicalAddress = new IntPtr(MemoryHelper.VirtToPhys(virtAddr));
+                buffer.PhysicalAddress = MemoryHelper.VirtToPhys(virtAddr);
                 buffer.MempoolIndex = i;
                 buffer.Size = 0;
                 _buffers.Push(buffer);

@@ -23,31 +23,31 @@ namespace IxyCs.Memory
         192 - byte[] more headroom (40 * 8)
         == 64 bytes
          */
-        private IntPtr _baseAddress;
+        private long _baseAddress;
 
         /// <summary>
         /// The virtual address of the actual Packet Buffer that this object wraps
         /// </summary>
-        public IntPtr VirtualAddress{ get {return _baseAddress;} }
+        public long VirtualAddress{ get {return _baseAddress;} }
 
         /// <summary>
         /// If true, this buffer is not (successfully) initialized
         /// </summary>
-        public bool IsNull {get {return VirtualAddress == IntPtr.Zero; }}
+        public bool IsNull {get {return VirtualAddress == 0; }}
 
-        public static PacketBuffer Null {get {return new PacketBuffer(IntPtr.Zero);}}
+        public static PacketBuffer Null {get {return new PacketBuffer(0);}}
 
         //Physical Address, 64 bits, offset 0
-        public unsafe IntPtr PhysicalAddress
+        public unsafe long PhysicalAddress
         {
             get
             {
-                IntPtr *ptr = (IntPtr*)_baseAddress;
+                long *ptr = (long*)_baseAddress;
                 return *ptr;
             }
             set
             {
-                IntPtr *ptr = (IntPtr*)_baseAddress;
+                long *ptr = (long*)_baseAddress;
                 *ptr = value;
             }
         }
@@ -57,12 +57,12 @@ namespace IxyCs.Memory
         {
             get
             {
-                long *ptr = (long*)IntPtr.Add(_baseAddress, 8);
+                long *ptr = (long*)(_baseAddress + 8);
                 return *ptr;
             }
             set
             {
-                long *ptr = (long*)IntPtr.Add(_baseAddress, 8);
+                long *ptr = (long*)(_baseAddress + 8);
                 *ptr = value;
             }
         }
@@ -72,12 +72,12 @@ namespace IxyCs.Memory
         {
             get
             {
-                int *ptr = (int*)IntPtr.Add(_baseAddress, 16);
+                int *ptr = (int*)(_baseAddress + 16);
                 return *ptr;
             }
             set
             {
-                int *ptr = (int*)IntPtr.Add(_baseAddress, 16);
+                int *ptr = (int*)(_baseAddress + 16);
                 *ptr = value;
             }
         }
@@ -87,17 +87,17 @@ namespace IxyCs.Memory
         {
             get
             {
-                int *ptr = (int*)IntPtr.Add(_baseAddress, 20);
+                int *ptr = (int*)(_baseAddress + 20);
                 return *ptr;
             }
             set
             {
-                int *ptr = (int*)IntPtr.Add(_baseAddress, 20);
+                int *ptr = (int*)(_baseAddress + 20);
                 *ptr = value;
             }
         }
 
-        public PacketBuffer(IntPtr baseAddr)
+        public PacketBuffer(long baseAddr)
         {
             this._baseAddress = baseAddr;
         }
@@ -110,7 +110,7 @@ namespace IxyCs.Memory
         /// </summary>
         public unsafe void WriteData(int offset, int val)
         {
-            int *ptr = (int*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            int *ptr = (int*)(_baseAddress + DataOffset + offset);
             *ptr = val;
         }
 
@@ -119,7 +119,7 @@ namespace IxyCs.Memory
         /// </summary>
         public unsafe void WriteData(int offset, short val)
         {
-            short *ptr = (short*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            short *ptr = (short*)(_baseAddress + DataOffset + offset);
             *ptr = val;
         }
 
@@ -128,7 +128,7 @@ namespace IxyCs.Memory
         /// </summary>
         public unsafe void WriteData(int offset, IntPtr val)
         {
-            IntPtr *ptr = (IntPtr*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            IntPtr *ptr = (IntPtr*)(_baseAddress + DataOffset + offset);
             *ptr = val;
         }
 
@@ -137,7 +137,7 @@ namespace IxyCs.Memory
         /// </summary>
         public unsafe void WriteData(int offset, long val)
         {
-            long *ptr = (long*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            long *ptr = (long*)(_baseAddress + DataOffset + offset);
             *ptr = val;
         }
 
@@ -146,7 +146,7 @@ namespace IxyCs.Memory
         /// </summary>
         public unsafe void WriteData(int offset, byte val)
         {
-            byte *ptr = (byte*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            byte *ptr = (byte*)(_baseAddress + DataOffset + offset);
             *ptr = val;
         }
 
@@ -157,7 +157,7 @@ namespace IxyCs.Memory
         {
             if(val == null || val.Length == 0)
                 return;
-            byte *targetPtr = (byte*)IntPtr.Add(_baseAddress, DataOffset + offset);
+            byte *targetPtr = (byte*)(_baseAddress + DataOffset + offset);
             //Keep location of source array in place while copying data
             fixed(byte* sourcePtr = val)
             {
@@ -177,7 +177,7 @@ namespace IxyCs.Memory
         public byte[] CopyData(uint offset, uint length)
         {
             var cpy = new byte[length];
-            Marshal.Copy(IntPtr.Add(_baseAddress, DataOffset + (int)offset), cpy, 0, cpy.Length);
+            Marshal.Copy(new IntPtr(_baseAddress + DataOffset + (int)offset), cpy, 0, cpy.Length);
             return cpy;
         }
 
@@ -187,10 +187,10 @@ namespace IxyCs.Memory
         public void DebugPrint()
         {
             Console.WriteLine("===Packet Buffer===");
-            Console.WriteLine("Virtual Address: {0}", VirtualAddress.ToInt64().ToString("0:X8"));
-            Console.WriteLine("Physical Address: {0}", PhysicalAddress.ToInt64().ToString("0:X8"));
+            Console.WriteLine("Virtual Address: {0}", VirtualAddress.ToString("0:X8"));
+            Console.WriteLine("Physical Address: {0}", PhysicalAddress.ToString("0:X8"));
             var header = new byte[64];
-            Marshal.Copy(_baseAddress, header, 0, 64);
+            Marshal.Copy(new IntPtr(_baseAddress), header, 0, 64);
             Console.WriteLine("Header:\n{0}\n", BitConverter.ToString(header));
             Console.WriteLine("Data:\n{0}\n", BitConverter.ToString(CopyData()));
         }
