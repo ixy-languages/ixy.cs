@@ -56,13 +56,13 @@ namespace IxyCs.Memory
         public void PreallocateBuffers()
         {
             _buffers = new Stack<PacketBuffer>((int)NumEntries);
-            for(uint i =NumEntries - 1; i >= 0; i--)
+            for(int i = (int)NumEntries - 1; i >= 0; i--)
             {
                 var virtAddr = BaseAddress + i * BufferSize;
                 var buffer = new PacketBuffer(virtAddr);
                 buffer.MempoolId = Id;
                 buffer.PhysicalAddress = MemoryHelper.VirtToPhys(virtAddr);
-                buffer.MempoolIndex = i;
+                buffer.MempoolIndex = (uint)i;
                 buffer.Size = 0;
                 _buffers.Push(buffer);
             }
