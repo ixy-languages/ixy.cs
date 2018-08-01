@@ -10,7 +10,7 @@ namespace IxyCs.Memory
         The reason for this is that the real buffer lives in DMA memory which is written to by
         the device and requires a very specific memory layout
      */
-    public struct PacketBuffer
+    public unsafe struct PacketBuffer
     {
         public const int DataOffset = 64;
         //These buffers have 64 bytes of headroom so the actual data has an offset of 64 bytes
@@ -24,6 +24,9 @@ namespace IxyCs.Memory
         == 64 bytes
          */
         private long _baseAddress;
+        //Confusingly, * is left-binding, not right-binding in C# so these are all pointers
+        private long* _physicalAddress, _mempoolId;
+        private uint* _mempoolIndex, _size;
 
         /// <summary>
         /// The virtual address of the actual Packet Buffer that this object wraps
@@ -42,13 +45,11 @@ namespace IxyCs.Memory
         {
             get
             {
-                long *ptr = (long*)_baseAddress;
-                return *ptr;
+                return *_physicalAddress;
             }
             set
             {
-                long *ptr = (long*)_baseAddress;
-                *ptr = value;
+                *_physicalAddress = value;
             }
         }
 
@@ -57,49 +58,47 @@ namespace IxyCs.Memory
         {
             get
             {
-                long *ptr = (long*)(_baseAddress + 8);
-                return *ptr;
+                return *_mempoolId;
             }
             set
             {
-                long *ptr = (long*)(_baseAddress + 8);
-                *ptr = value;
+                *_mempoolId = value;
             }
         }
 
         //Mempool index, 32 bits, offset 128 bits
-        public unsafe int MempoolIndex
+        public unsafe uint MempoolIndex
         {
             get
             {
-                int *ptr = (int*)(_baseAddress + 16);
-                return *ptr;
+                return *_mempoolIndex;
             }
             set
             {
-                int *ptr = (int*)(_baseAddress + 16);
-                *ptr = value;
+                *_mempoolIndex = value;
             }
         }
 
         //Size, 32 bits, offset 160 bits
-        public unsafe int Size
+        public unsafe uint Size
         {
             get
             {
-                int *ptr = (int*)(_baseAddress + 20);
-                return *ptr;
+                return *_size;
             }
             set
             {
-                int *ptr = (int*)(_baseAddress + 20);
-                *ptr = value;
+                *_size = value;
             }
         }
 
         public PacketBuffer(long baseAddr)
         {
             this._baseAddress = baseAddr;
+            _physicalAddress = (long*)_baseAddress;
+            _mempoolId = (long*)(_baseAddress + 8);
+            _mempoolIndex = (uint*)(_baseAddress + 16);
+            _size = (uint*)(_baseAddress + 20);
         }
 
         //Sacrificing some code compactness for a nicer API
@@ -171,7 +170,7 @@ namespace IxyCs.Memory
         /// </summary>
         public byte[] CopyData()
         {
-            return CopyData(0, (uint)Size);
+            return CopyData(0, Size);
         }
 
         public byte[] CopyData(uint offset, uint length)

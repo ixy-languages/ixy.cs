@@ -108,7 +108,7 @@ namespace IxyCs.Ixgbe
 
             //var buffers = new PacketBuffer[buffersCount];
             var buffers = new List<PacketBuffer>(buffersCount);
-            var queue = (IxgbeRxQueue)RxQueues[queueId];
+            var queue = RxQueues[queueId] as IxgbeRxQueue;
             ushort rxIndex = (ushort)queue.Index;
             ushort lastRxIndex = rxIndex;
             for(int bufInd = 0; bufInd < buffersCount; bufInd++)
@@ -166,7 +166,7 @@ namespace IxyCs.Ixgbe
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
 
-            var queue = (IxgbeTxQueue)TxQueues[queueId];
+            var queue = TxQueues[queueId] as IxgbeTxQueue;
             ushort cleanIndex = queue.CleanIndex;
             ushort currentIndex = (ushort)queue.Index;
             var cmdTypeFlags = IxgbeDefs.ADVTXD_DCMD_EOP | IxgbeDefs.ADVTXD_DCMD_RS | IxgbeDefs.ADVTXD_DCMD_IFCS |
@@ -210,7 +210,6 @@ namespace IxyCs.Ixgbe
                             if(pool == null)
                                 throw new NullReferenceException("Could not find mempool with id specified by PacketBuffer");
                         }
-                        //TODO: We are freeing a packet buffer object which the mempool did not allocate. Check if buffer count stays constant
                         pool.FreeBuffer(packetBuffer);
                         if(i == cleanupTo)
                             break;

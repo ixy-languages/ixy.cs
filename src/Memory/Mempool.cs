@@ -56,7 +56,7 @@ namespace IxyCs.Memory
         public void PreallocateBuffers()
         {
             _buffers = new Stack<PacketBuffer>((int)NumEntries);
-            for(int i =(int)NumEntries - 1; i >= 0; i--)
+            for(uint i =NumEntries - 1; i >= 0; i--)
             {
                 var virtAddr = BaseAddress + i * BufferSize;
                 var buffer = new PacketBuffer(virtAddr);

@@ -33,7 +33,7 @@ namespace IxyCs.Demo
                 var stats2Old = new DeviceStats(dev2);
 
                 //Periodically measure time
-                if(((counter++ % 100000) == 0) && stopWatch.ElapsedMilliseconds > 100)
+                if(((counter++ % 500000) == 0) && stopWatch.ElapsedMilliseconds > 1000)
                 {
                     stopWatch.Stop();
                     var nanos = stopWatch.ElapsedTicks;

@@ -76,7 +76,7 @@ namespace IxyCs.Demo
             for(int i = 0; i < BuffersCount; i++)
             {
                 var buffer = _mempool.GetPacketBuffer();
-                buffer.Size = PacketData.Length;
+                buffer.Size = (uint)PacketData.Length;
                 buffer.WriteData(0, PacketData);
                 var ipData = buffer.CopyData(14, 20);
                 buffer.WriteData(24, (short)CalcIpChecksum(ipData));
