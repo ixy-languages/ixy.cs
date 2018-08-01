@@ -241,7 +241,7 @@ namespace IxyCs.Ixgbe
                 //NIC reads from here
                 txDesc.BufferAddr = buffer.PhysicalAddress + PacketBuffer.DataOffset;
                 //Always the same flags: One buffer (EOP), advanced data descriptor, CRC offload, data length
-                var bufSize = (uint)buffer.Size;
+                var bufSize = buffer.Size;
                 txDesc.CmdTypeLength = (cmdTypeFlags | bufSize);
                 //No fancy offloading - only the total payload length
                 //implement offloading flags here:
@@ -252,7 +252,6 @@ namespace IxyCs.Ixgbe
             }
 
             //Send out by advancing tail, i.e. pass control of the bus to the NIC
-            //This seems like a textbook case for a release memory order, but Intel's driver doesn't even use a compiler barrier here
             SetReg(IxgbeDefs.TDT((uint)queueId), (uint)queue.Index);
             return (int)sent;
         }

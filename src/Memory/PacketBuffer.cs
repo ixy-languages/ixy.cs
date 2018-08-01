@@ -166,6 +166,15 @@ namespace IxyCs.Memory
         }
 
         /// <summary>
+        /// Returns one byte of data at the given offset. Used for debug/benchmark purposes
+        /// </summary>
+        public unsafe byte GetDataByte(uint i)
+        {
+            byte* b = (byte*)(_baseAddress + DataOffset + i);
+            return *b;
+        }
+
+        /// <summary>
         /// Returns a copy of the buffer's payload
         /// </summary>
         public byte[] CopyData()
