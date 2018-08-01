@@ -164,8 +164,8 @@ namespace IxyCs.Ixgbe
 
         public override int TxBatch(int queueId, PacketBuffer[] buffers)
         {
+            Log.BenchEnabled = new Random().Next(0, 100) > 90;
             var sw = new Stopwatch();
-            sw.Start();
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
 
@@ -176,15 +176,16 @@ namespace IxyCs.Ixgbe
                                         IxgbeDefs.ADVTXD_DCMD_DEXT | IxgbeDefs.ADVTXD_DTYP_DATA;
             //All packet buffers that will be handled here will belong to the same mempool
             Mempool pool = null;
-            sw.Stop();
-            Log.Bench("Tx.Prep", sw.ElapsedTicks);
-            sw.Restart();
 
             //Step 1: Clean up descriptors that were sent out by the hardware and return them to the mempool
             //Start by reading step 2 which is done first for each packet
             //Cleaning up must be done in batches for performance reasons, so this is unfortunately somewhat complicated
+            long step1while = 0;
+            long step1whilewhile = 0;
             while(true)
             {
+                step1while++;
+                sw.Restart();
                 //currentIndex is always ahead of clean (invariant of our queue)
                 int cleanable = currentIndex - cleanIndex;
                 if(cleanable < 0)
@@ -197,11 +198,18 @@ namespace IxyCs.Ixgbe
                 int cleanupTo = cleanIndex + TxCleanBatch - 1;
                 if(cleanupTo >= queue.EntriesCount)
                     cleanupTo -= queue.EntriesCount;
-
+                sw.Stop();
+                Log.Bench("Tx.Step1.Prep", sw.ElapsedTicks);
+                sw.Restart();
                 var txDesc = queue.GetDescriptor(cleanupTo);
+                sw.Stop();
+                Log.Bench("Tx.Step1.GetDesc", sw.ElapsedTicks);
                 if(txDesc.IsNull)
                     throw new InvalidOperationException("Trying to read Tx descriptor from uninitialized queue");
+                sw.Restart();
                 uint status = txDesc.WbStatus;
+                sw.Stop();
+                Log.Bench("Tx.Step1.GetStatus", sw.ElapsedTicks);
 
                 //Hardware sets this flag as soon as it's sent out, we can give back all bufs in the batch back to the mempool
                 if((status & IxgbeDefs.ADVTXD_STAT_DD) != 0)
@@ -209,17 +217,27 @@ namespace IxyCs.Ixgbe
                     int i = cleanIndex;
                     while(true)
                     {
+                        step1whilewhile++;
+                        sw.Restart();
                         var packetBuffer = new PacketBuffer(queue.VirtualAddresses[i]);
+                        sw.Stop();
+                        Log.Bench("Tx.Step1.CreatePb", sw.ElapsedTicks);
                         if(pool == null)
                         {
                             pool = Mempool.FindPool(packetBuffer.MempoolId);
                             if(pool == null)
                                 throw new NullReferenceException("Could not find mempool with id specified by PacketBuffer");
                         }
+                        sw.Restart();
                         pool.FreeBuffer(packetBuffer);
+                        sw.Stop();
+                        Log.Bench("Tx.Step1.FreePb", sw.ElapsedTicks);
                         if(i == cleanupTo)
                             break;
+                        sw.Restart();
                         i = WrapRing(i, queue.EntriesCount);
+                        sw.Stop();
+                        Log.Bench("Tx.WrapRing", sw.ElapsedTicks);
                     }
                     //Next descriptor to be cleaned up is one after the one we just cleaned
                     cleanIndex = WrapRing((ushort)cleanupTo, (ushort)queue.EntriesCount);
@@ -227,14 +245,13 @@ namespace IxyCs.Ixgbe
                 //Clean the whole batch or nothing. This will leave some packets in the queue forever
                 //if you stop transmitting but that's not a real concern
                 else {break;}
+                Console.WriteLine("Tx step 1 inner while loop : " + step1whilewhile);
             }
+            Console.WriteLine("Tx step 1 outer while: " + step1while);
             queue.CleanIndex = cleanIndex;
-            sw.Stop();
-            Log.Bench("Tx.Step1", sw.ElapsedTicks);
 
             //Step 2: Send out as many of our packets as possible
             uint sent;
-            sw.Restart();
             for(sent = 0; sent < buffers.Length; sent++)
             {
                 ushort nextIndex = WrapRing(currentIndex, (ushort)queue.EntriesCount);
@@ -242,11 +259,19 @@ namespace IxyCs.Ixgbe
                 if(cleanIndex == nextIndex)
                     break;
 
+                sw.Restart();
                 var buffer = buffers[sent];
                 //Remember virtual address to clean it up later
                 queue.VirtualAddresses[currentIndex] = buffer.VirtualAddress;
                 queue.Index = WrapRing(queue.Index, queue.EntriesCount);
+                sw.Stop();
+                Log.Bench("Tx.Step2.Prep", sw.ElapsedTicks);
+                sw.Stop();
+                sw.Restart();
                 var txDesc = queue.GetDescriptor(currentIndex);
+                sw.Stop();
+                Log.Bench("Tx.Step2.GetDesc", sw.ElapsedTicks);
+                sw.Restart();
                 //NIC reads from here
                 txDesc.BufferAddr = buffer.PhysicalAddress + PacketBuffer.DataOffset;
                 //Always the same flags: One buffer (EOP), advanced data descriptor, CRC offload, data length
@@ -257,16 +282,14 @@ namespace IxyCs.Ixgbe
                 // * ip checksum offloading is trivial: just set the offset
                 // * tcp/udp checksum offloading is more annoying, you have to precalculate the pseudo-header checksum
                 txDesc.OlInfoStatus = (bufSize << (int)IxgbeDefs.ADVTXD_PAYLEN_SHIFT);
+                sw.Stop();
+                Log.Bench("Tx.Step2.SetDescValues", sw.ElapsedTicks);
                 currentIndex = nextIndex;
             }
-            sw.Stop();
-            Log.Bench("Tx.Step2", sw.ElapsedTicks);
 
-            sw.Restart();
+
             //Send out by advancing tail, i.e. pass control of the bus to the NIC
             SetReg(IxgbeDefs.TDT((uint)queueId), (uint)queue.Index);
-            sw.Stop();
-            Log.Bench("Tx.SetTDT", sw.ElapsedTicks);
             return (int)sent;
         }
 
