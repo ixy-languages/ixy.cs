@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -163,6 +164,8 @@ namespace IxyCs.Ixgbe
 
         public override int TxBatch(int queueId, PacketBuffer[] buffers)
         {
+            var sw = new Stopwatch();
+            sw.Start();
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
 
@@ -173,6 +176,9 @@ namespace IxyCs.Ixgbe
                                         IxgbeDefs.ADVTXD_DCMD_DEXT | IxgbeDefs.ADVTXD_DTYP_DATA;
             //All packet buffers that will be handled here will belong to the same mempool
             Mempool pool = null;
+            sw.Stop();
+            Log.Bench("Tx.Prep", sw.ElapsedTicks);
+            sw.Restart();
 
             //Step 1: Clean up descriptors that were sent out by the hardware and return them to the mempool
             //Start by reading step 2 which is done first for each packet
@@ -223,9 +229,12 @@ namespace IxyCs.Ixgbe
                 else {break;}
             }
             queue.CleanIndex = cleanIndex;
+            sw.Stop();
+            Log.Bench("Tx.Step1", sw.ElapsedTicks);
 
             //Step 2: Send out as many of our packets as possible
             uint sent;
+            sw.Restart();
             for(sent = 0; sent < buffers.Length; sent++)
             {
                 ushort nextIndex = WrapRing(currentIndex, (ushort)queue.EntriesCount);
@@ -250,9 +259,14 @@ namespace IxyCs.Ixgbe
                 txDesc.OlInfoStatus = (bufSize << (int)IxgbeDefs.ADVTXD_PAYLEN_SHIFT);
                 currentIndex = nextIndex;
             }
+            sw.Stop();
+            Log.Bench("Tx.Step2", sw.ElapsedTicks);
 
+            sw.Restart();
             //Send out by advancing tail, i.e. pass control of the bus to the NIC
             SetReg(IxgbeDefs.TDT((uint)queueId), (uint)queue.Index);
+            sw.Stop();
+            Log.Bench("Tx.SetTDT", sw.ElapsedTicks);
             return (int)sent;
         }
 
