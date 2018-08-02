@@ -4,7 +4,6 @@ using System.IO.MemoryMappedFiles;
 using System.Threading;
 using IxyCs.Memory;
 using IxyCs.Pci;
-using System.Collections.Generic;
 
 namespace IxyCs
 {
@@ -95,12 +94,12 @@ namespace IxyCs
             int numSent = 0;
             while(numSent < buffers.Length)
             {
-                numSent += TxBatch(queueId, buffers.Skip(numSent).Take(buffers.Length - numSent).ToList());
+                numSent += TxBatch(queueId, buffers.Skip(numSent).Take(buffers.Length - numSent).ToArray());
             }
         }
 
-        public abstract List<PacketBuffer> RxBatch(int queueId, int buffersCount);
-        public abstract int TxBatch(int queueId, List<PacketBuffer> buffers);
+        public abstract PacketBuffer[] RxBatch(int queueId, int buffersCount);
+        public abstract int TxBatch(int queueId, PacketBuffer[] buffers);
         public abstract void ReadStats(ref DeviceStats stats);
         public abstract uint GetLinkSpeed();
         public abstract void SetPromisc(bool enabled);
