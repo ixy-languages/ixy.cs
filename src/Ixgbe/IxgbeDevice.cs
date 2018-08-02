@@ -104,6 +104,9 @@ namespace IxyCs.Ixgbe
         //We control the tail of the queue, hardware controls the head
         public override PacketBuffer[] RxBatch(int queueId, int buffersCount)
         {
+            Log.BenchEnabled = false;//new Random().Next(0, 100) > 90;
+            var sw = new Stopwatch();
+            sw.Start();
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
 
@@ -112,13 +115,22 @@ namespace IxyCs.Ixgbe
             var queue = RxQueues[queueId] as IxgbeRxQueue;
             ushort rxIndex = (ushort)queue.Index;
             ushort lastRxIndex = rxIndex;
+            sw.Stop();
+            Log.Bench("Rx.Prep", sw.ElapsedTicks);
+
             for(int bufInd = 0; bufInd < buffersCount; bufInd++)
             {
+                sw.Start();
                 var descriptor = queue.GetDescriptor(rxIndex);
+                sw.Stop();
+                Log.Bench("Rx.GetDesc", sw.ElapsedTicks);
                 if(descriptor.IsNull)
                     throw new InvalidOperationException("Trying to read descriptor from unitialized queue");
 
+                sw.Start();
                 uint status = descriptor.WbStatusError;
+                sw.Stop();
+                Log.Bench("Rx.GetStatus", sw.ElapsedTicks);
                 //Status DONE
                 if((status & IxgbeDefs.RXDADV_STAT_DD) != 0)
                 {
@@ -128,26 +140,42 @@ namespace IxyCs.Ixgbe
 
                     //We got a packet - read and copy the whole descriptor
                     //TODO : May want to create hard copy of descriptor here so we know nothing will change
+                    sw.Start();
                     var packetBuffer = new PacketBuffer(queue.VirtualAddresses[rxIndex]);
                     packetBuffer.Size = descriptor.WbLength;
+                    sw.Stop();
+                    Log.Bench("Rx.PbCtorAndSize", sw.ElapsedTicks);
 
                     //This would be the place to implement RX offloading by translating the device-specific
                     //flags to an independent representation in that buffer (similar to how DPDK works)
+                    sw.Start();
                     var newBuf = queue.Mempool.GetPacketBuffer();
+                    sw.Stop();
+                    Log.Bench("Rx.GetPb", sw.ElapsedTicks);
                     if(newBuf.IsNull)
                     {
                         Log.Error("Cannot allocate RX buffer - Out of memory! Either there is a memory leak, or the mempool is too small");
                         throw new OutOfMemoryException("Failed to allocate new buffer for rx - you are either leaking memory or your mempool is too small");
                     }
 
+                    sw.Start();
                     descriptor.PacketBufferAddress = newBuf.PhysicalAddress + PacketBuffer.DataOffset;
                     descriptor.HeaderBufferAddress = 0; //This resets the flags
                     queue.VirtualAddresses[rxIndex] = newBuf.VirtualAddress;
+                    sw.Stop();
+                    Log.Bench("Rx.DescWrite", sw.ElapsedTicks);
+
+                    sw.Start();
                     buffers.Add(packetBuffer);
+                    sw.Stop();
+                    Log.Bench("Rx.AddPb", sw.ElapsedTicks);
 
                     //Want to read the next one in the next iteration but we still need the current one to update RDT later
                     lastRxIndex = rxIndex;
+                    sw.Start();
                     rxIndex = WrapRing(rxIndex, (ushort)queue.EntriesCount);
+                    sw.Stop();
+                    Log.Bench("Rx.WrapRing", sw.ElapsedTicks);
                 }
                 else {break;}
             }
@@ -164,7 +192,7 @@ namespace IxyCs.Ixgbe
 
         public override int TxBatch(int queueId, PacketBuffer[] buffers)
         {
-            Log.BenchEnabled = new Random().Next(0, 100) > 90;
+            Log.BenchEnabled = false;//new Random().Next(0, 100) > 90;
             var sw = new Stopwatch();
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
@@ -240,7 +268,7 @@ namespace IxyCs.Ixgbe
                         Log.Bench("Tx.WrapRing", sw.ElapsedTicks);
                     }
                     //Next descriptor to be cleaned up is one after the one we just cleaned
-                    cleanIndex = WrapRing((ushort)cleanupTo, (ushort)queue.EntriesCount);
+                    cleanIndex = (ushort)WrapRing(cleanupTo, queue.EntriesCount);
                 }
                 //Clean the whole batch or nothing. This will leave some packets in the queue forever
                 //if you stop transmitting but that's not a real concern
