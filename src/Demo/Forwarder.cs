@@ -61,7 +61,7 @@ namespace IxyCs.Demo
             {
                 //Touch all buffers to simulate a realistic scenario
                 foreach(var buffer in rxBuffers)
-                    buffer.WriteData(1, buffer.GetDataByte(1));
+                    buffer.WriteData(1, 1);
 
                 int txBuffCount = txDev.TxBatch(txQueue, rxBuffers);
                 _mempool = (_mempool == null) ? Mempool.FindPool(rxBuffers[0].MempoolId) : _mempool;
