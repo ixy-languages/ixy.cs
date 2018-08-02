@@ -55,7 +55,8 @@ namespace IxyCs.Demo
         private void Forward(IxgbeDevice rxDev, int rxQueue,  IxgbeDevice txDev, int txQueue)
         {
             var rxBuffers = rxDev.RxBatch(rxQueue, BatchSize);
-            if(rxBuffers.Length > 0)
+            var rxBufCount = rxBuffers.Count;
+            if(rxBuffers.Count > 0)
             {
                 //Touch all buffers to simulate a realistic scenario
                 foreach(var buffer in rxBuffers)
@@ -65,7 +66,7 @@ namespace IxyCs.Demo
                 var mempool = Mempool.FindPool(rxBuffers[0].MempoolId);
 
                 //Drop unsent packets
-                for(int i = txBuffCount; i < rxBuffers.Length; i++)
+                for(int i = txBuffCount; i < rxBufCount; i++)
                 {
                     var buf = rxBuffers[i];
                     mempool.FreeBuffer(buf);

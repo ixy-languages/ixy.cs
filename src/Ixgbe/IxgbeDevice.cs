@@ -101,7 +101,7 @@ namespace IxyCs.Ixgbe
         //Try to receive a single packet if one is available, non-blocking
         //Section 7.1.9 explains RX ring structure
         //We control the tail of the queue, hardware controls the head
-        public override PacketBuffer[] RxBatch(int queueId, int buffersCount)
+        public override List<PacketBuffer> RxBatch(int queueId, int buffersCount)
         {
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
@@ -158,10 +158,10 @@ namespace IxyCs.Ixgbe
                 SetReg(IxgbeDefs.RDT((uint)queueId), lastRxIndex);
                 queue.Index = rxIndex;
             }
-            return buffers.ToArray();
+            return buffers;
         }
 
-        public override int TxBatch(int queueId, PacketBuffer[] buffers)
+        public override int TxBatch(int queueId, List<PacketBuffer> buffers)
         {
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
@@ -225,8 +225,8 @@ namespace IxyCs.Ixgbe
             queue.CleanIndex = cleanIndex;
 
             //Step 2: Send out as many of our packets as possible
-            uint sent;
-            for(sent = 0; sent < buffers.Length; sent++)
+            int sent;
+            for(sent = 0; sent < buffers.Count; sent++)
             {
                 ushort nextIndex = WrapRing(currentIndex, (ushort)queue.EntriesCount);
                 //We are full if the next index is the one we are trying to reclaim
