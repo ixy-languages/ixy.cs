@@ -106,12 +106,12 @@ namespace IxyCs.Ixgbe
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
 
-            var buffers = new PacketBuffer[buffersCount];
+            //var buffers = new PacketBuffer[buffersCount];
+            var buffers = new List<PacketBuffer>(buffersCount);
             var queue = RxQueues[queueId] as IxgbeRxQueue;
             ushort rxIndex = (ushort)queue.Index;
             ushort lastRxIndex = rxIndex;
-            int bufInd;
-            for(bufInd = 0; bufInd < buffersCount; bufInd++)
+            for(int bufInd = 0; bufInd < buffersCount; bufInd++)
             {
                 var descriptor = queue.GetDescriptor(rxIndex);
                 if(descriptor.IsNull)
@@ -142,7 +142,7 @@ namespace IxyCs.Ixgbe
                     descriptor.PacketBufferAddress = newBuf.PhysicalAddress + PacketBuffer.DataOffset;
                     descriptor.HeaderBufferAddress = 0; //This resets the flags
                     queue.VirtualAddresses[rxIndex] = newBuf.VirtualAddress;
-                    buffers[bufInd] = packetBuffer;
+                    buffers.Add(packetBuffer);
 
                     //Want to read the next one in the next iteration but we still need the current one to update RDT later
                     lastRxIndex = rxIndex;
@@ -158,8 +158,7 @@ namespace IxyCs.Ixgbe
                 SetReg(IxgbeDefs.RDT((uint)queueId), lastRxIndex);
                 queue.Index = rxIndex;
             }
-            Array.Resize(ref buffers, bufInd);
-            return buffers;
+            return buffers.ToArray();
         }
 
         public override int TxBatch(int queueId, PacketBuffer[] buffers)
