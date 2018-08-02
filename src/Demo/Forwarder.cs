@@ -9,6 +9,8 @@ namespace IxyCs.Demo
     public class Forwarder
     {
         public const int BatchSize = 32;
+        //Since we are just using one queue, we can save the mempool here
+        private Mempool _mempool;
 
         public Forwarder(string pci1, string pci2)
         {
@@ -63,13 +65,13 @@ namespace IxyCs.Demo
                     buffer.WriteData(1, buffer.GetDataByte(1));
 
                 int txBuffCount = txDev.TxBatch(txQueue, rxBuffers);
-                var mempool = Mempool.FindPool(rxBuffers[0].MempoolId);
+                _mempool = (_mempool == null) ? Mempool.FindPool(rxBuffers[0].MempoolId) : _mempool;
 
                 //Drop unsent packets
                 for(int i = txBuffCount; i < rxBufCount; i++)
                 {
                     var buf = rxBuffers[i];
-                    mempool.FreeBuffer(buf);
+                    _mempool.FreeBuffer(buf);
                 }
             }
         }
