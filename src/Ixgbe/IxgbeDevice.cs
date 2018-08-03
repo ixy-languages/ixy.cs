@@ -132,7 +132,7 @@ namespace IxyCs.Ixgbe
 
                     //This would be the place to implement RX offloading by translating the device-specific
                     //flags to an independent representation in that buffer (similar to how DPDK works)
-                    var newBuf = queue.Mempool.GetPacketBuffer();
+                    var newBuf = queue.Mempool.GetPacketBufferFast();
                     if(newBuf.IsNull)
                     {
                         Log.Error("Cannot allocate RX buffer - Out of memory! Either there is a memory leak, or the mempool is too small");
@@ -211,7 +211,7 @@ namespace IxyCs.Ixgbe
                             if(pool == null)
                                 throw new NullReferenceException("Could not find mempool with id specified by PacketBuffer");
                         }
-                        pool.FreeBuffer(packetBuffer);
+                        pool.FreeBufferFast(packetBuffer);
                         if(i == cleanupTo)
                             break;
                         i = WrapRing(i, queue.EntriesCount);
@@ -468,7 +468,7 @@ namespace IxyCs.Ixgbe
                 Log.Notice("Setting up descriptor at index #{0}", ei);
                 var descriptor = queue.GetDescriptor(ei);
                 //Allocate packet buffer
-                var packetBuffer = queue.Mempool.GetPacketBuffer();
+                var packetBuffer = queue.Mempool.GetPacketBufferFast();
                 if(packetBuffer.IsNull)
                 {
                     Log.Error("Fatal: Could not allocate packet buffer");

@@ -42,7 +42,7 @@ namespace IxyCs.Memory
 
         private long _id;
         //Pre-allocated buffer objects for this mempool
-        private Stack<PacketBuffer> _buffers;
+        private FixedStack _buffers;
 
         public Mempool(long baseAddr, uint bufSize, uint numEntries)
         {
@@ -55,7 +55,7 @@ namespace IxyCs.Memory
 
         public void PreallocateBuffers()
         {
-            _buffers = new Stack<PacketBuffer>((int)NumEntries);
+            _buffers = new FixedStack(NumEntries);
             for(int i = (int)NumEntries - 1; i >= 0; i--)
             {
                 var virtAddr = BaseAddress + i * BufferSize;
@@ -78,6 +78,11 @@ namespace IxyCs.Memory
             return _buffers.Pop();
         }
 
+        internal PacketBuffer GetPacketBufferFast()
+        {
+            return _buffers.Pop();
+        }
+
         public PacketBuffer[] GetPacketBuffers(int num)
         {
             if(_buffers.Count < num)
@@ -85,14 +90,27 @@ namespace IxyCs.Memory
                 Log.Warning("Mempool only has {0} free buffers, requested {1}", _buffers.Count, num);
                 num = (int)_buffers.Count;
             }
-            //TODO : Check if order is correct here (should probably be ascending addresses)
             var buffers = new PacketBuffer[num];
             for(int i = 0; i< num; i++)
                 buffers[i] = _buffers.Pop();
             return buffers;
         }
 
+        /// <summary>
+        /// Returns the given buffer to the top of the mempool stack
+        /// </summary>
         public void FreeBuffer(PacketBuffer buffer)
+        {
+            if(_buffers.Count < _buffers.Capacity)
+                _buffers.Push(buffer);
+            else
+                Log.Warning("Cannot free buffer because mempool stack is full");
+        }
+
+        /// <summary>
+        /// Fast version of FreeBuffer, which does not do any bounds checking. For internal use only!
+        /// </summary>
+        internal void FreeBufferFast(PacketBuffer buffer)
         {
             //TODO: May want to have a check here whether buffer actually belongs to this mempool
             //On the other hand, currently the mempool id can just be overriden anyway, so it's not a real guarantee
