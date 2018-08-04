@@ -3,7 +3,7 @@ namespace IxyCs
     public abstract class IxyQueue
     {
         public readonly int EntriesCount;
-        //TODO : Should (at least in some cases) be a ushort
+        //This could possibly be a ushort to avoid casting
         public int Index {get; set;}
 
         public IxyQueue(int count)

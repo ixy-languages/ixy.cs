@@ -112,8 +112,6 @@ namespace IxyCs.Memory
         /// </summary>
         internal void FreeBufferFast(PacketBuffer buffer)
         {
-            //TODO: May want to have a check here whether buffer actually belongs to this mempool
-            //On the other hand, currently the mempool id can just be overriden anyway, so it's not a real guarantee
             _buffers.Push(buffer);
         }
     }

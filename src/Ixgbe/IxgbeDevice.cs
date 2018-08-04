@@ -126,7 +126,6 @@ namespace IxyCs.Ixgbe
                         throw new InvalidOperationException("Multi segment packets are not supported - increase buffer size or decrease MTU");
 
                     //We got a packet - read and copy the whole descriptor
-                    //TODO : May want to create hard copy of descriptor here so we know nothing will change
                     var packetBuffer = new PacketBuffer(queue.VirtualAddresses[rxIndex]);
                     packetBuffer.Size = descriptor.WbLength;
 
@@ -369,7 +368,6 @@ namespace IxyCs.Ixgbe
                 var dmaMem = MemoryHelper.AllocateDmaC((uint)ringSizeBytes, true);
                 //TODO : The C version sets the allocated memory to -1 here
 
-                //TODO: What's the point of the masking here?
                 SetReg(IxgbeDefs.RDBAL(i), (uint)(dmaMem.PhysicalAddress & 0xFFFFFFFFL));
                 SetReg(IxgbeDefs.RDBAH(i), (uint)(dmaMem.PhysicalAddress >> 32));
                 SetReg(IxgbeDefs.RDLEN(i), (uint)ringSizeBytes);
@@ -419,7 +417,6 @@ namespace IxyCs.Ixgbe
                 uint ringSizeBytes = NumTxQueueEntries * TxDescriptorSize;
                 var dmaMem = MemoryHelper.AllocateDmaC(ringSizeBytes, true);
                 //TODO : The C version sets the allocated memory to -1 here
-                //TODO : What's the point of the masking here?
                 SetReg(IxgbeDefs.TDBAL(i), (uint)(dmaMem.PhysicalAddress & 0xFFFFFFFFL));
                 SetReg(IxgbeDefs.TDBAH(i), (uint)(dmaMem.PhysicalAddress >> 32));
                 SetReg(IxgbeDefs.TDLEN(i), (uint)ringSizeBytes);

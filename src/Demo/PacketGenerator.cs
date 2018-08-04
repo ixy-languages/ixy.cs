@@ -84,7 +84,6 @@ namespace IxyCs.Demo
             }
 
             //Return them all to the mempool, all future allocations will return buffers with the data set above
-            //TODO : Not sure if the order is correct here
             foreach(var buffer in buffers)
                 _mempool.FreeBuffer(buffer);
         }

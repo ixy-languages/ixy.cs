@@ -103,8 +103,6 @@ namespace IxyCs.Memory
         }
 
         //Sacrificing some code compactness for a nicer API
-        //TODO: These functions should probably check if the offset is within bounds
-        //but that would require checking buffer size with each call and impact performance
         /// <summary>
         /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
         /// </summary>
