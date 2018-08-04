@@ -22,58 +22,58 @@ namespace IxyCs.Ixgbe
         /// <summary>
         /// Gets the Tx descriptor at index i, starting at DescriptorsAddr
         /// </summary>
-        public ulong GetDescriptor(ushort i)
+        public ulong GetDescriptorAddress(ushort i)
         {
             if(DescriptorsAddr == 0)
                 throw new InvalidOperationException("Trying to retreive descriptor from uninitialized TX queue");
             return DescriptorsAddr + i * DescriptorSize;
         }
 
-        public unsafe void WriteBufferAddress(ushort descIndex, ulong bufAddr)
+        public unsafe void WriteBufferAddress(ulong descAddr, ulong bufAddr)
         {
-            ulong *ptr = (ulong*)GetDescriptor(descIndex);
+            ulong *ptr = (ulong*)descAddr;
             *ptr = bufAddr;
         }
 
-        public unsafe ulong ReadBufferAddress(ushort descIndex)
+        public unsafe ulong ReadBufferAddress(ulong descAddr)
         {
-            ulong *ptr = (ulong*)GetDescriptor(descIndex);
+            ulong *ptr = (ulong*)descAddr;
             return *ptr;
         }
 
-        public unsafe void WriteCmdTypeLength(ushort descIndex, uint cmdTypeLen)
+        public unsafe void WriteCmdTypeLength(ulong descAddr, uint cmdTypeLen)
         {
-            uint *ptr = (uint*)(GetDescriptor(descIndex) + 8);
+            uint *ptr = (uint*)(descAddr + 8);
             *ptr = cmdTypeLen;
         }
 
-        public unsafe uint ReadCmdTypeLength(ushort descIndex)
+        public unsafe uint ReadCmdTypeLength(ulong descAddr)
         {
-            uint *ptr = (uint*)(GetDescriptor(descIndex) + 8);
+            uint *ptr = (uint*)(descAddr + 8);
             return *ptr;
         }
 
-        public unsafe void WriteOlInfoStatus(ushort descIndex, uint olInfoStat)
+        public unsafe void WriteOlInfoStatus(ulong descAddr, uint olInfoStat)
         {
-            uint *ptr = (uint*)(GetDescriptor(descIndex) + 12);
+            uint *ptr = (uint*)(descAddr + 12);
             *ptr = olInfoStat;
         }
 
-        public unsafe uint ReadOlInfoStatus(ushort descIndex)
+        public unsafe uint ReadOlInfoStatus(ulong descAddr)
         {
-            uint *ptr = (uint*)(GetDescriptor(descIndex) + 12);
+            uint *ptr = (uint*)(descAddr + 12);
             return *ptr;
         }
 
-        public unsafe void WriteWbStatus(ushort descIndex, uint wbStat)
+        public unsafe void WriteWbStatus(ulong descAddr, uint wbStat)
         {
-            uint *ptr = (uint*)(GetDescriptor(descIndex) + 12);
+            uint *ptr = (uint*)(descAddr + 12);
             *ptr = wbStat;
         }
 
-        public unsafe uint ReadWbStatus(ushort descIndex)
+        public unsafe uint ReadWbStatus(ulong descAddr)
         {
-            uint *ptr = (uint*)(GetDescriptor(descIndex) + 12);
+            uint *ptr = (uint*)(descAddr + 12);
             return *ptr;
         }
     }

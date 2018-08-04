@@ -113,7 +113,8 @@ namespace IxyCs.Ixgbe
             int bufInd;
             for(bufInd = 0; bufInd < buffersCount; bufInd++)
             {
-                var status = queue.ReadWbStatusError(rxIndex);
+                var descAddr = queue.GetDescriptorAddress(rxIndex);
+                var status = queue.ReadWbStatusError(descAddr);
                 //Status DONE
                 if((status & IxgbeDefs.RXDADV_STAT_DD) != 0)
                 {
@@ -124,7 +125,7 @@ namespace IxyCs.Ixgbe
                     //We got a packet - read and copy the whole descriptor
                     var packetBuffer = new PacketBuffer(queue.VirtualAddresses[rxIndex]);
 
-                    packetBuffer.Size = queue.ReadWbLength(rxIndex);
+                    packetBuffer.Size = queue.ReadWbLength(descAddr);
 
                     //This would be the place to implement RX offloading by translating the device-specific
                     //flags to an independent representation in that buffer (similar to how DPDK works)
@@ -135,8 +136,8 @@ namespace IxyCs.Ixgbe
                         throw new OutOfMemoryException("Failed to allocate new buffer for rx - you are either leaking memory or your mempool is too small");
                     }
 
-                    queue.WriteBufferAddress(rxIndex, newBuf.PhysicalAddress + PacketBuffer.DataOffset);
-                    queue.WriteHeaderBufferAddress(rxIndex, 0); //This resets the flags
+                    queue.WriteBufferAddress(descAddr, newBuf.PhysicalAddress + PacketBuffer.DataOffset);
+                    queue.WriteHeaderBufferAddress(descAddr, 0); //This resets the flags
                     queue.VirtualAddresses[rxIndex] = newBuf.VirtualAddress;
                     buffers[bufInd] = packetBuffer;
 
@@ -189,8 +190,8 @@ namespace IxyCs.Ixgbe
                 if(cleanupTo >= queue.EntriesCount)
                     cleanupTo -= queue.EntriesCount;
 
-                ushort descIndex = (ushort)cleanupTo;
-                uint status = queue.ReadWbStatus(descIndex);
+                var descAddr = queue.GetDescriptorAddress((ushort)cleanupTo);
+                uint status = queue.ReadWbStatus(descAddr);
 
                 //Hardware sets this flag as soon as it's sent out, we can give back all bufs in the batch back to the mempool
                 if((status & IxgbeDefs.ADVTXD_STAT_DD) != 0)
@@ -223,6 +224,7 @@ namespace IxyCs.Ixgbe
             uint sent;
             for(sent = 0; sent < buffers.Length; sent++)
             {
+                var descAddr = queue.GetDescriptorAddress(currentIndex);
                 ushort nextIndex = WrapRing(currentIndex, (ushort)queue.EntriesCount);
                 //We are full if the next index is the one we are trying to reclaim
                 if(cleanIndex == nextIndex)
@@ -233,15 +235,15 @@ namespace IxyCs.Ixgbe
                 queue.VirtualAddresses[currentIndex] = buffer.VirtualAddress;
                 queue.Index = WrapRing(queue.Index, queue.EntriesCount);
                 //NIC reads from here
-                queue.WriteBufferAddress(currentIndex, buffer.PhysicalAddress + PacketBuffer.DataOffset);
+                queue.WriteBufferAddress(descAddr, buffer.PhysicalAddress + PacketBuffer.DataOffset);
                 //Always the same flags: One buffer (EOP), advanced data descriptor, CRC offload, data length
                 var bufSize = buffer.Size;
-                queue.WriteCmdTypeLength(currentIndex, cmdTypeFlags | bufSize);
+                queue.WriteCmdTypeLength(descAddr, cmdTypeFlags | bufSize);
                 //No fancy offloading - only the total payload length
                 //implement offloading flags here:
                 // * ip checksum offloading is trivial: just set the offset
                 // * tcp/udp checksum offloading is more annoying, you have to precalculate the pseudo-header checksum
-                queue.WriteOlInfoStatus(currentIndex, bufSize << (int)IxgbeDefs.ADVTXD_PAYLEN_SHIFT);
+                queue.WriteOlInfoStatus(descAddr, bufSize << (int)IxgbeDefs.ADVTXD_PAYLEN_SHIFT);
                 currentIndex = nextIndex;
             }
 
@@ -456,6 +458,7 @@ namespace IxyCs.Ixgbe
 
             for(ushort ei = 0; ei < queue.EntriesCount; ei++)
             {
+                var descrAddr = queue.GetDescriptorAddress(ei);
                 Log.Notice("Setting up descriptor at index #{0}", ei);
                 //Allocate packet buffer
                 var packetBuffer = queue.Mempool.GetPacketBufferFast();
@@ -464,8 +467,8 @@ namespace IxyCs.Ixgbe
                     Log.Error("Fatal: Could not allocate packet buffer");
                     Environment.Exit(1);
                 }
-                queue.WriteBufferAddress(ei, packetBuffer.PhysicalAddress + PacketBuffer.DataOffset);
-                queue.WriteHeaderBufferAddress(ei, 0);
+                queue.WriteBufferAddress(descrAddr, packetBuffer.PhysicalAddress + PacketBuffer.DataOffset);
+                queue.WriteHeaderBufferAddress(descrAddr, 0);
                 queue.VirtualAddresses[ei] = packetBuffer.VirtualAddress;
             }
 

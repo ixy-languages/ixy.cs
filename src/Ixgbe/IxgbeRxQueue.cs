@@ -21,70 +21,70 @@ namespace IxyCs.Ixgbe
         /// <summary>
         /// Gets the Rx descriptor at index i, starting at DescriptorsAddr
         /// </summary>
-        public ulong GetDescriptor(ushort i)
+        public ulong GetDescriptorAddress(ushort i)
         {
             if(DescriptorsAddr == 0)
                 throw new InvalidOperationException("Trying to retreive descriptor from uninitialized TX queue");
             return DescriptorsAddr + i * DescriptorSize;
         }
 
-        public unsafe void WriteBufferAddress(ushort descIndex, ulong bufAddr)
+        public unsafe void WriteBufferAddress(ulong descAddr, ulong bufAddr)
         {
-            ulong *ptr = (ulong*)GetDescriptor(descIndex);
+            ulong *ptr = (ulong*)descAddr;
             *ptr = bufAddr;
         }
 
-        public unsafe ulong ReadBufferAddress(ushort descIndex)
+        public unsafe ulong ReadBufferAddress(ulong descAddr)
         {
-            ulong *ptr = (ulong*)GetDescriptor(descIndex);
+            ulong *ptr = (ulong*)descAddr;
             return *ptr;
         }
 
-        public unsafe void WriteHeaderBufferAddress(ushort descIndex, ulong headBufAddr)
+        public unsafe void WriteHeaderBufferAddress(ulong descAddr, ulong headBufAddr)
         {
-            ulong *ptr = (ulong*)(GetDescriptor(descIndex) + 8);
+            ulong *ptr = (ulong*)(descAddr + 8);
             *ptr = headBufAddr;
         }
 
-        public unsafe ulong ReadHeaderBufferAddress(ushort descIndex)
+        public unsafe ulong ReadHeaderBufferAddress(ulong descAddr)
         {
-            ulong *ptr = (ulong*)(GetDescriptor(descIndex) + 8);
+            ulong *ptr = (ulong*)(descAddr + 8);
             return *ptr;
         }
 
-        public unsafe void WriteWbData(ushort descIndex, uint wbData)
+        public unsafe void WriteWbData(ulong descAddr, uint wbData)
         {
-            uint *ptr = (uint*)GetDescriptor(descIndex);
+            uint *ptr = (uint*)descAddr;
             *ptr = wbData;
         }
 
-        public unsafe ulong ReadWbData(ushort descIndex)
+        public unsafe ulong ReadWbData(ulong descAddr)
         {
-            uint *ptr = (uint*)GetDescriptor(descIndex);
+            uint *ptr = (uint*)descAddr;
             return *ptr;
         }
 
-        public unsafe void WriteWbStatusError(ushort descIndex, uint status)
+        public unsafe void WriteWbStatusError(ulong descAddr, uint status)
         {
-            uint *ptr = (uint*)(GetDescriptor(descIndex) + 8);
+            uint *ptr = (uint*)(descAddr + 8);
             *ptr = status;
         }
 
-        public unsafe ulong ReadWbStatusError(ushort descIndex)
+        public unsafe ulong ReadWbStatusError(ulong descAddr)
         {
-            uint *ptr = (uint*)(GetDescriptor(descIndex) + 8);
+            uint *ptr = (uint*)(descAddr + 8);
             return *ptr;
         }
 
-        public unsafe void WriteWbLength(ushort descIndex, ushort len)
+        public unsafe void WriteWbLength(ulong descAddr, ushort len)
         {
-            ushort *ptr = (ushort*)(GetDescriptor(descIndex) + 12);
+            ushort *ptr = (ushort*)(descAddr + 12);
             *ptr = len;
         }
 
-        public unsafe ushort ReadWbLength(ushort descIndex)
+        public unsafe ushort ReadWbLength(ulong descAddr)
         {
-            ushort *ptr = (ushort*)(GetDescriptor(descIndex) + 12);
+            ushort *ptr = (ushort*)(descAddr + 12);
             return *ptr;
         }
 
