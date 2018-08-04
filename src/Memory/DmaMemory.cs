@@ -4,10 +4,9 @@ namespace IxyCs.Memory
 {
     public class DmaMemory
     {
-        public readonly long VirtualAddress;
-        public readonly long PhysicalAddress;
+        public readonly ulong VirtualAddress, PhysicalAddress;
 
-        public DmaMemory(long virt, long phys)
+        public DmaMemory(ulong virt, ulong phys)
         {
             VirtualAddress = virt;
             PhysicalAddress = phys;

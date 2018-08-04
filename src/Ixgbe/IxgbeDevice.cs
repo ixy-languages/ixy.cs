@@ -193,7 +193,7 @@ namespace IxyCs.Ixgbe
                 if(cleanupTo >= queue.EntriesCount)
                     cleanupTo -= queue.EntriesCount;
 
-                var txDesc = queue.GetDescriptor(cleanupTo);
+                var txDesc = queue.GetDescriptor((uint)cleanupTo);
                 if(txDesc.IsNull)
                     throw new InvalidOperationException("Trying to read Tx descriptor from uninitialized queue");
                 uint status = txDesc.WbStatus;
@@ -217,7 +217,7 @@ namespace IxyCs.Ixgbe
                         i = WrapRing(i, queue.EntriesCount);
                     }
                     //Next descriptor to be cleaned up is one after the one we just cleaned
-                    cleanIndex = WrapRing((ushort)cleanupTo, (ushort)queue.EntriesCount);
+                    cleanIndex = (ushort)WrapRing(cleanupTo, queue.EntriesCount);
                 }
                 //Clean the whole batch or nothing. This will leave some packets in the queue forever
                 //if you stop transmitting but that's not a real concern
@@ -463,7 +463,7 @@ namespace IxyCs.Ixgbe
                 Environment.Exit(1);
             }
 
-            for(int ei = 0; ei < queue.EntriesCount; ei++)
+            for(uint ei = 0; ei < queue.EntriesCount; ei++)
             {
                 Log.Notice("Setting up descriptor at index #{0}", ei);
                 var descriptor = queue.GetDescriptor(ei);

@@ -14,21 +14,21 @@ namespace IxyCs.Memory
         //private static int HugePageNumber = 0;
 
         [DllImport("ixy_c.so")]
-        public static extern long dma_memory(uint size, bool requireContiguous);
+        public static extern ulong dma_memory(uint size, bool requireContiguous);
 
-        public static long VirtToPhys(long virt)
+        public static ulong VirtToPhys(ulong virt)
         {
-            long pageSize = Environment.SystemPageSize;
-            long physical = 0;
+            ulong pageSize = (ulong)Environment.SystemPageSize;
+            ulong physical = 0;
             //Read page from /proc/self/pagemap
             try
             {
                 using(BinaryReader reader = new BinaryReader(File.Open("/proc/self/pagemap", FileMode.Open)))
                 {
-                    long pos = virt / pageSize * sizeof(long);
-                    reader.BaseStream.Seek(pos,
+                    ulong pos = virt / pageSize * sizeof(ulong);
+                    reader.BaseStream.Seek((long)pos,
                     SeekOrigin.Begin);
-                    physical = reader.ReadInt64();
+                    physical = reader.ReadUInt64();
                 }
             }
             catch(Exception ex)

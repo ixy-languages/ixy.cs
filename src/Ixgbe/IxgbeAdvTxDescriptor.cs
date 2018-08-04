@@ -4,20 +4,20 @@ namespace IxyCs.Ixgbe
 {
     public struct IxgbeAdvTxDescriptor
     {
-        public const int DescriptorSize = 16;
-        private long _baseAddress;
+        public const uint DescriptorSize = 16;
+        private ulong _baseAddress;
 
         //read.buffer_addr - len: 8 - offs: 0
-        public unsafe long BufferAddr
+        public unsafe ulong BufferAddr
         {
             get
             {
-                long *ptr = (long*)_baseAddress;
+                ulong *ptr = (ulong*)_baseAddress;
                 return *ptr;
             }
             set
             {
-                long *ptr = (long*)_baseAddress;
+                ulong *ptr = (ulong*)_baseAddress;
                 *ptr = value;
             }
         }
@@ -66,7 +66,7 @@ namespace IxyCs.Ixgbe
 
         public static IxgbeAdvTxDescriptor Null {get {return new IxgbeAdvTxDescriptor(0);}}
 
-        public IxgbeAdvTxDescriptor(long baseAddr)
+        public IxgbeAdvTxDescriptor(ulong baseAddr)
         {
             this._baseAddress = baseAddr;
         }

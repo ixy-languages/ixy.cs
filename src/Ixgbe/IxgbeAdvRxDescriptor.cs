@@ -12,34 +12,34 @@ namespace IxyCs.Ixgbe
      */
     public struct IxgbeAdvRxDescriptor
     {
-        public const int DescriptorSize = 16;
+        public const uint DescriptorSize = 16;
 
         //read.pkt_addr - len: 8 - offs: 0
-        public unsafe long PacketBufferAddress
+        public unsafe ulong PacketBufferAddress
         {
             get
             {
-                long *ptr = (long*)_baseAddress;
+                ulong *ptr = (ulong*)_baseAddress;
                 return *ptr;
             }
             set
             {
-                long *ptr = (long*)_baseAddress;
+                ulong *ptr = (ulong*)_baseAddress;
                 *ptr = value;
             }
         }
 
         //read.hdr_addr - len: 8 - offs: 8
-        public unsafe long HeaderBufferAddress
+        public unsafe ulong HeaderBufferAddress
         {
             get
             {
-                long *ptr = (long*)(_baseAddress + 8);
+                ulong *ptr = (ulong*)(_baseAddress + 8);
                 return *ptr;
             }
             set
             {
-                long *ptr = (long*)(_baseAddress + 8);
+                ulong *ptr = (ulong*)(_baseAddress + 8);
                 *ptr = value;
             }
         }
@@ -89,9 +89,9 @@ namespace IxyCs.Ixgbe
             }
         }
 
-        //TODO: Some more fields..
+        //There are some more fields here but we don't need them
 
-        private long _baseAddress;
+        private ulong _baseAddress;
 
         /// <summary>
         /// If true, this descriptor is not (successfully) initialized
@@ -100,7 +100,7 @@ namespace IxyCs.Ixgbe
 
         public static IxgbeAdvRxDescriptor Null {get {return new IxgbeAdvRxDescriptor(0);}}
 
-        public IxgbeAdvRxDescriptor(long baseAddr)
+        public IxgbeAdvRxDescriptor(ulong baseAddr)
         {
             this._baseAddress = baseAddr;
         }
