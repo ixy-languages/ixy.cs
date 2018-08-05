@@ -59,7 +59,7 @@ namespace IxyCs.Memory
             for(int i = (int)NumEntries - 1; i >= 0; i--)
             {
                 var virtAddr = BaseAddress + (uint)i * BufferSize;
-                var buffer = new PacketBuffer(virtAddr);
+                var buffer = new PacketBuffer(virtAddr, BufferSize);
                 buffer.MempoolId = Id;
                 buffer.PhysicalAddress = MemoryHelper.VirtToPhys(virtAddr);
                 buffer.Size = 0;

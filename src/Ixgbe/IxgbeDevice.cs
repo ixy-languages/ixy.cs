@@ -11,6 +11,7 @@ namespace IxyCs.Ixgbe
     public class IxgbeDevice : IxyDevice
     {
         public const int MaxQueues = 64;
+        private const int MaxPacketBufferSize = 2048;
         private const int MaxRxQueueEntries = 4096;
         private const int MaxTxQueueEntries = 4096;
         private const int NumRxQueueEntries = 512;
@@ -126,7 +127,7 @@ namespace IxyCs.Ixgbe
                         throw new InvalidOperationException("Multi segment packets are not supported - increase buffer size or decrease MTU");
 
                     //We got a packet - read and copy the whole descriptor
-                    var packetBuffer = new PacketBuffer(queue.VirtualAddresses[rxIndex]);
+                    var packetBuffer = new PacketBuffer(queue.VirtualAddresses[rxIndex], MaxPacketBufferSize);
                     packetBuffer.Size = descriptor.WbLength;
 
                     //This would be the place to implement RX offloading by translating the device-specific
@@ -203,7 +204,7 @@ namespace IxyCs.Ixgbe
                     int i = cleanIndex;
                     while(true)
                     {
-                        var packetBuffer = new PacketBuffer(queue.VirtualAddresses[i]);
+                        var packetBuffer = new PacketBuffer(queue.VirtualAddresses[i], MaxPacketBufferSize);
                         if(pool == null)
                         {
                             pool = Mempool.FindPool(packetBuffer.MempoolId);

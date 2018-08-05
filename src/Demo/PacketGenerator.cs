@@ -50,8 +50,8 @@ namespace IxyCs.Demo
             while(true)
             {
                 var buffers = _mempool.GetPacketBuffers(BatchSize);
-                foreach(var buf in buffers)
-                    buf.WriteData(PacketSize - 4, seqNum++);
+                //foreach(var buf in buffers)
+                  //  buf.WriteData(PacketSize - 4, seqNum++);
                 dev.TxBatchBusyWait(0, buffers);
 
                 if((counter++ & 0xFFF) == 0 && stopWatch.ElapsedMilliseconds > 100)
@@ -75,12 +75,13 @@ namespace IxyCs.Demo
             var buffers = new PacketBuffer[BuffersCount];
             for(int i = 0; i < BuffersCount; i++)
             {
-                var buffer = _mempool.GetPacketBuffer();
+                //Just removing this for this commit so I don't have to re-implement more packetbuffer methods
+                /*var buffer = _mempool.GetPacketBuffer();
                 buffer.Size = (uint)PacketData.Length;
                 buffer.WriteData(0, PacketData);
                 var ipData = buffer.CopyData(14, 20);
                 buffer.WriteData(24, (short)CalcIpChecksum(ipData));
-                buffers[i] = buffer;
+                buffers[i] = buffer;*/
             }
 
             //Return them all to the mempool, all future allocations will return buffers with the data set above

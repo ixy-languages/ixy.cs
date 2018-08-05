@@ -23,12 +23,13 @@ namespace IxyCs.Memory
         192 - byte[] more headroom (40 * 8)
         == 64 bytes
          */
-        private ulong _baseAddress;
+        private UnmanagedMemoryStream _baseStream;
+        private ulong _virtualAddress;
 
         /// <summary>
         /// The virtual address of the actual Packet Buffer that this object wraps
         /// </summary>
-        public ulong VirtualAddress{ get {return _baseAddress;} }
+        public ulong VirtualAddress{ get {return _virtualAddress;} }
 
         /// <summary>
         /// If true, this buffer is not (successfully) initialized
@@ -42,13 +43,15 @@ namespace IxyCs.Memory
         {
             get
             {
-                ulong *ptr = (ulong*)_baseAddress;
-                return *ptr;
+                _baseStream.Seek(0, SeekOrigin.Begin);
+                var bytes = new byte[8];
+                _baseStream.Read(bytes, 0, 8);
+                return BitConverter.ToUInt64(bytes, 0);
             }
             set
             {
-                ulong *ptr = (ulong*)_baseAddress;
-                *ptr = value;
+                _baseStream.Seek(0, SeekOrigin.Begin);
+                _baseStream.Write(BitConverter.GetBytes(value), 0, 8);
             }
         }
 
@@ -57,13 +60,15 @@ namespace IxyCs.Memory
         {
             get
             {
-                long *ptr = (long*)(_baseAddress + 8);
-                return *ptr;
+                _baseStream.Seek(8, SeekOrigin.Begin);
+                var bytes = new byte[8];
+                _baseStream.Read(bytes, 0, 8);
+                return BitConverter.ToInt64(bytes, 0);
             }
             set
             {
-                long *ptr = (long*)(_baseAddress + 8);
-                *ptr = value;
+                _baseStream.Seek(8, SeekOrigin.Begin);
+                _baseStream.Write(BitConverter.GetBytes(value), 0, 8);
             }
         }
 
@@ -72,19 +77,30 @@ namespace IxyCs.Memory
         {
             get
             {
-                uint *ptr = (uint*)(_baseAddress + 20);
-                return *ptr;
+                _baseStream.Seek(20, SeekOrigin.Begin);
+                var bytes = new byte[4];
+                _baseStream.Read(bytes, 0, 4);
+                return BitConverter.ToUInt32(bytes, 0);
             }
             set
             {
-                uint *ptr = (uint*)(_baseAddress + 20);
-                *ptr = value;
+                _baseStream.Seek(20, SeekOrigin.Begin);
+                _baseStream.Write(BitConverter.GetBytes(value), 0, 4);
             }
         }
 
-        public PacketBuffer(ulong baseAddr)
+        public unsafe PacketBuffer(ulong baseAddr, uint maxSize)
         {
-            this._baseAddress = baseAddr;
+            _virtualAddress = baseAddr;
+            var ptr = (byte*)baseAddr;
+            _baseStream = new UnmanagedMemoryStream(ptr, maxSize);
+        }
+
+        //Private constructor only to be used for null-initialization
+        private PacketBuffer(ulong baseAddr)
+        {
+            _virtualAddress = baseAddr;
+            _baseStream = null;
         }
 
         //Sacrificing some code compactness for a nicer API
@@ -93,10 +109,10 @@ namespace IxyCs.Memory
         /// </summary>
         public unsafe void WriteData(uint offset, int val)
         {
-            int *ptr = (int*)(_baseAddress + DataOffset + offset);
-            *ptr = val;
+            _baseStream.Seek(offset, SeekOrigin.Begin);
+            _baseStream.Write(BitConverter.GetBytes(val), 0 , 4);
         }
-
+        /*
         /// <summary>
         /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
         /// </summary>
@@ -148,14 +164,15 @@ namespace IxyCs.Memory
                     targetPtr[i] = sourcePtr[i];
             }
         }
+        */
 
         /// <summary>
         /// Returns one byte of data at the given offset. Used for debug/benchmark purposes
         /// </summary>
         public unsafe byte GetDataByte(uint i)
         {
-            byte* b = (byte*)(_baseAddress + DataOffset + i);
-            return *b;
+            _baseStream.Seek(i + DataOffset, SeekOrigin.Begin);
+            return (byte)_baseStream.ReadByte();
         }
 
 
@@ -164,13 +181,14 @@ namespace IxyCs.Memory
         /// </summary>
         public byte[] CopyData()
         {
-            return CopyData(0, (uint)Size);
+            return CopyData(0, Size);
         }
 
         public byte[] CopyData(uint offset, uint length)
         {
+            _baseStream.Seek(offset + DataOffset, SeekOrigin.Begin);
             var cpy = new byte[length];
-            Marshal.Copy(new IntPtr((long)(_baseAddress + DataOffset + offset)), cpy, 0, cpy.Length);
+            _baseStream.Read(cpy, 0, (int)length);
             return cpy;
         }
     }
