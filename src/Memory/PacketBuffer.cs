@@ -93,7 +93,7 @@ namespace IxyCs.Memory
         {
             _virtualAddress = baseAddr;
             var ptr = (byte*)baseAddr;
-            _baseStream = new UnmanagedMemoryStream(ptr, maxSize);
+            _baseStream = new UnmanagedMemoryStream(ptr, maxSize, maxSize, FileAccess.ReadWrite);
         }
 
         //Private constructor only to be used for null-initialization
@@ -109,7 +109,7 @@ namespace IxyCs.Memory
         /// </summary>
         public unsafe void WriteData(uint offset, int val)
         {
-            _baseStream.Seek(offset, SeekOrigin.Begin);
+            _baseStream.Seek(DataOffset + offset, SeekOrigin.Begin);
             _baseStream.Write(BitConverter.GetBytes(val), 0 , 4);
         }
         /*
