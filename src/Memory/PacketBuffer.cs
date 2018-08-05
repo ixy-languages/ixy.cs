@@ -67,21 +67,6 @@ namespace IxyCs.Memory
             }
         }
 
-        //Mempool index, 32 bits, offset 128 bits
-        public unsafe uint MempoolIndex
-        {
-            get
-            {
-                uint *ptr = (uint*)(_baseAddress + 16);
-                return *ptr;
-            }
-            set
-            {
-                uint *ptr = (uint*)(_baseAddress + 16);
-                *ptr = value;
-            }
-        }
-
         //Size, 32 bits, offset 160 bits
         public unsafe uint Size
         {

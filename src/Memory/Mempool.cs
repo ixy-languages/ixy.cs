@@ -62,7 +62,6 @@ namespace IxyCs.Memory
                 var buffer = new PacketBuffer(virtAddr);
                 buffer.MempoolId = Id;
                 buffer.PhysicalAddress = MemoryHelper.VirtToPhys(virtAddr);
-                buffer.MempoolIndex = (uint)i;
                 buffer.Size = 0;
                 _buffers.Push(buffer);
             }
