@@ -87,6 +87,14 @@ namespace IxyCs.Memory
             this._baseAddress = baseAddr;
         }
 
+        /// <summary>
+        /// Increments the second byte of the payload. Used for benchmarking
+        /// </summary>
+        public unsafe void Touch()
+        {
+            ((byte*)(_baseAddress + DataOffset + 1))[0]++;
+        }
+
         //Sacrificing some code compactness for a nicer API
         /// <summary>
         /// Writes the value to the data segment of this buffer with the given offset (to which DataOffset is added)
