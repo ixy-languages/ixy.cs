@@ -40,6 +40,14 @@ namespace IxyCs
             this.TxPackets = 0;
         }
 
+        public void Reset()
+        {
+            RxBytes = 0;
+            TxBytes = 0;
+            RxPackets = 0;
+            TxPackets = 0;
+        }
+
         public void PrintStats()
         {
             Console.WriteLine("{0} RX: {1} bytes {2} packets", Device?.PciAddress, RxBytes, RxPackets);

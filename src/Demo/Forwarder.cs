@@ -24,15 +24,19 @@ namespace IxyCs.Demo
 
             ulong counter = 0;
             var stopWatch = new Stopwatch();
+            var stats1 = new DeviceStats(dev1);
+            var stats1Old = new DeviceStats(dev1);
+            var stats2 = new DeviceStats(dev2);
+            var stats2Old = new DeviceStats(dev2);
             stopWatch.Start();
             while(true)
             {
                 Forward(dev1, 0, dev2, 0);
                 Forward(dev2, 0, dev1, 0);
-                var stats1 = new DeviceStats(dev1);
-                var stats1Old = new DeviceStats(dev1);
-                var stats2 = new DeviceStats(dev2);
-                var stats2Old = new DeviceStats(dev2);
+                stats1.Reset();
+                stats1Old.Reset();
+                stats2.Reset();
+                stats2Old.Reset();
 
                 //Periodically measure time
                 if(((counter++ % 500000) == 0) && stopWatch.ElapsedMilliseconds > 1000)
