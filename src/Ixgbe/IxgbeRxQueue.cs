@@ -30,62 +30,52 @@ namespace IxyCs.Ixgbe
 
         public unsafe void WriteBufferAddress(ulong descAddr, ulong bufAddr)
         {
-            ulong *ptr = (ulong*)descAddr;
-            *ptr = bufAddr;
+            *((ulong*)descAddr) = bufAddr;
         }
 
         public unsafe ulong ReadBufferAddress(ulong descAddr)
         {
-            ulong *ptr = (ulong*)descAddr;
-            return *ptr;
+            return *((ulong*)descAddr);
         }
 
         public unsafe void WriteHeaderBufferAddress(ulong descAddr, ulong headBufAddr)
         {
-            ulong *ptr = (ulong*)(descAddr + 8);
-            *ptr = headBufAddr;
+            *((ulong*)(descAddr + 8)) = headBufAddr;
         }
 
         public unsafe ulong ReadHeaderBufferAddress(ulong descAddr)
         {
-            ulong *ptr = (ulong*)(descAddr + 8);
-            return *ptr;
+            return *((ulong*)(descAddr + 8));
         }
 
         public unsafe void WriteWbData(ulong descAddr, uint wbData)
         {
-            uint *ptr = (uint*)descAddr;
-            *ptr = wbData;
+            *((uint*)descAddr) = wbData;
         }
 
         public unsafe ulong ReadWbData(ulong descAddr)
         {
-            uint *ptr = (uint*)descAddr;
-            return *ptr;
+            return *((uint*)descAddr);
         }
 
         public unsafe void WriteWbStatusError(ulong descAddr, uint status)
         {
-            uint *ptr = (uint*)(descAddr + 8);
-            *ptr = status;
+            *((uint*)(descAddr + 8)) = status;
         }
 
         public unsafe ulong ReadWbStatusError(ulong descAddr)
         {
-            uint *ptr = (uint*)(descAddr + 8);
-            return *ptr;
+            return *((uint*)(descAddr + 8));
         }
 
         public unsafe void WriteWbLength(ulong descAddr, ushort len)
         {
-            ushort *ptr = (ushort*)(descAddr + 12);
-            *ptr = len;
+            *((ushort*)(descAddr + 12)) = len;
         }
 
         public unsafe ushort ReadWbLength(ulong descAddr)
         {
-            ushort *ptr = (ushort*)(descAddr + 12);
-            return *ptr;
+            return *((ushort*)(descAddr + 12));
         }
 
     }

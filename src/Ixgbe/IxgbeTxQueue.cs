@@ -31,50 +31,42 @@ namespace IxyCs.Ixgbe
 
         public unsafe void WriteBufferAddress(ulong descAddr, ulong bufAddr)
         {
-            ulong *ptr = (ulong*)descAddr;
-            *ptr = bufAddr;
+            *((ulong*)descAddr) = bufAddr;
         }
 
         public unsafe ulong ReadBufferAddress(ulong descAddr)
         {
-            ulong *ptr = (ulong*)descAddr;
-            return *ptr;
+            return *((ulong*)descAddr);
         }
 
         public unsafe void WriteCmdTypeLength(ulong descAddr, uint cmdTypeLen)
         {
-            uint *ptr = (uint*)(descAddr + 8);
-            *ptr = cmdTypeLen;
+            *((uint*)(descAddr + 8)) = cmdTypeLen;
         }
 
         public unsafe uint ReadCmdTypeLength(ulong descAddr)
         {
-            uint *ptr = (uint*)(descAddr + 8);
-            return *ptr;
+            return *((uint*)(descAddr + 8));
         }
 
         public unsafe void WriteOlInfoStatus(ulong descAddr, uint olInfoStat)
         {
-            uint *ptr = (uint*)(descAddr + 12);
-            *ptr = olInfoStat;
+            *((uint*)(descAddr + 12)) = olInfoStat;
         }
 
         public unsafe uint ReadOlInfoStatus(ulong descAddr)
         {
-            uint *ptr = (uint*)(descAddr + 12);
-            return *ptr;
+            return *((uint*)(descAddr + 12));
         }
 
         public unsafe void WriteWbStatus(ulong descAddr, uint wbStat)
         {
-            uint *ptr = (uint*)(descAddr + 12);
-            *ptr = wbStat;
+            *((uint*)(descAddr + 12)) = wbStat;
         }
 
         public unsafe uint ReadWbStatus(ulong descAddr)
         {
-            uint *ptr = (uint*)(descAddr + 12);
-            return *ptr;
+            return *((uint*)(descAddr + 12));
         }
     }
 }

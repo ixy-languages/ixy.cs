@@ -42,13 +42,11 @@ namespace IxyCs.Memory
         {
             get
             {
-                ulong *ptr = (ulong*)_baseAddress;
-                return *ptr;
+                return *((ulong*)_baseAddress);
             }
             set
             {
-                ulong *ptr = (ulong*)_baseAddress;
-                *ptr = value;
+                *((ulong*)_baseAddress) = value;
             }
         }
 
@@ -57,13 +55,11 @@ namespace IxyCs.Memory
         {
             get
             {
-                long *ptr = (long*)(_baseAddress + 8);
-                return *ptr;
+                return *((long*)(_baseAddress + 8));
             }
             set
             {
-                long *ptr = (long*)(_baseAddress + 8);
-                *ptr = value;
+                *((long*)(_baseAddress + 8)) = value;
             }
         }
 
@@ -72,13 +68,11 @@ namespace IxyCs.Memory
         {
             get
             {
-                uint *ptr = (uint*)(_baseAddress + 20);
-                return *ptr;
+                return *((uint*)(_baseAddress + 20));
             }
             set
             {
-                uint *ptr = (uint*)(_baseAddress + 20);
-                *ptr = value;
+                *((uint*)(_baseAddress + 20)) = value;
             }
         }
 
