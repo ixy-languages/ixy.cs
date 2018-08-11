@@ -505,18 +505,12 @@ namespace IxyCs.Ixgbe
         //Advance index with wrap-around
         private ushort WrapRing(ushort index, ushort ringSize)
         {
-            unchecked
-            {
-                return (ushort)((index + 1) & (ringSize - 1));
-            }
+            return (ushort)((index + 1) & (ringSize - 1));
         }
 
         private int WrapRing(int index, int ringSize)
         {
-            unchecked
-            {
-                return (index + 1) & (ringSize - 1);
-            }
+            return (index + 1) & (ringSize - 1);
         }
     }
 }

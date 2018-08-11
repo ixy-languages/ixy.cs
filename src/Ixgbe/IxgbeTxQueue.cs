@@ -26,10 +26,7 @@ namespace IxyCs.Ixgbe
         {
             if(DescriptorsAddr == 0)
                 throw new InvalidOperationException("Trying to retreive descriptor from uninitialized TX queue");
-            unchecked
-            {
-                return DescriptorsAddr + i * DescriptorSize;
-            }
+            return DescriptorsAddr + i * DescriptorSize;
         }
 
         public unsafe void WriteBufferAddress(ulong descAddr, ulong bufAddr)
