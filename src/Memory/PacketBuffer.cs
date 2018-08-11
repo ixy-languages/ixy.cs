@@ -55,11 +55,11 @@ namespace IxyCs.Memory
         {
             get
             {
-                return *((long*)(unchecked(_baseAddress + 8)));
+                return *((long*)(_baseAddress + 8));
             }
             set
             {
-                *((long*)(unchecked(_baseAddress + 8))) = value;
+                *((long*)(_baseAddress + 8)) = value;
             }
         }
 
@@ -68,11 +68,11 @@ namespace IxyCs.Memory
         {
             get
             {
-                return *((uint*)(unchecked(_baseAddress + 20)));
+                return *((uint*)(_baseAddress + 20));
             }
             set
             {
-                *((uint*)(unchecked(_baseAddress + 20))) = value;
+                *((uint*)(_baseAddress + 20)) = value;
             }
         }
 
@@ -86,7 +86,7 @@ namespace IxyCs.Memory
         /// </summary>
         public unsafe void Touch()
         {
-            ((byte*)(unchecked(_baseAddress + DataOffset + 1)))[0]++;
+            ((byte*)(_baseAddress + DataOffset + 1))[0]++;
         }
 
         //Sacrificing some code compactness for a nicer API
