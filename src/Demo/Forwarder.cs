@@ -12,15 +12,20 @@ namespace IxyCs.Demo
         //Since we are just using one queue, we can save the mempool here
         private Mempool _mempool;
 
-        public Forwarder(string pci1, string pci2)
+        public unsafe Forwarder(string pci1, string pci2)
         {
             if(String.IsNullOrEmpty(pci1) || String.IsNullOrEmpty(pci2))
             {
                 Log.Error("Please provide two pci addresses");
                 Environment.Exit(1);
             }
+
             var dev1 = new IxgbeDevice(pci1, 1, 1);
             var dev2 = new IxgbeDevice(pci2, 1, 1);
+
+            // TODO: switch to C# 7.3 and replace with Span<PacketBuffer> buffers = stackalloc PacketBuffer[BatchSize];
+            var buffersArray = stackalloc PacketBuffer[BatchSize];
+            var buffers = new Span<PacketBuffer>(buffersArray, BatchSize);
 
             ulong counter = 0;
             var stopWatch = new Stopwatch();
@@ -31,8 +36,8 @@ namespace IxyCs.Demo
             stopWatch.Start();
             while(true)
             {
-                Forward(dev1, 0, dev2, 0);
-                Forward(dev2, 0, dev1, 0);
+                Forward(dev1, 0, dev2, 0, buffers);
+                Forward(dev2, 0, dev1, 0, buffers);
                 stats1.Reset();
                 stats1Old.Reset();
                 stats2.Reset();
@@ -58,24 +63,22 @@ namespace IxyCs.Demo
             }
         }
 
-        private void Forward(IxgbeDevice rxDev, int rxQueue,  IxgbeDevice txDev, int txQueue)
+        private void Forward(IxgbeDevice rxDev, int rxQueue, IxgbeDevice txDev, int txQueue, Span<PacketBuffer> buffers)
         {
-            var rxBuffers = rxDev.RxBatch(rxQueue, BatchSize);
-            if(rxBuffers.Length > 0)
+            var rxBuffCount = rxDev.RxBatch(rxQueue, buffers);
+            if(rxBuffCount > 0)
             {
+                var rxBuffers = buffers.Slice(0, rxBuffCount);
                 //Touch all buffers to simulate a realistic scenario
-                foreach(var buffer in rxBuffers)
+                foreach (var buffer in rxBuffers)
                     buffer.Touch();
 
-                int txBuffCount = txDev.TxBatch(txQueue, rxBuffers);
+                var txBuffCount = txDev.TxBatch(txQueue, rxBuffers);
                 _mempool = (_mempool == null) ? Mempool.FindPool(rxBuffers[0].MempoolId) : _mempool;
 
                 //Drop unsent packets
-                for(int i = txBuffCount; i < rxBuffers.Length; i++)
-                {
-                    var buf = rxBuffers[i];
-                    _mempool.FreeBuffer(buf);
-                }
+                foreach (var buffer in rxBuffers.Slice(txBuffCount))
+                    _mempool.FreeBuffer(buffer);
             }
         }
     }

@@ -82,17 +82,17 @@ namespace IxyCs.Memory
             return _buffers.Pop();
         }
 
-        public PacketBuffer[] GetPacketBuffers(int num)
+        public int GetPacketBuffers(Span<PacketBuffer> buffers)
         {
-            if(_buffers.Count < num)
+            var num = buffers.Length;
+            if (_buffers.Count < num)
             {
                 Log.Warning("Mempool only has {0} free buffers, requested {1}", _buffers.Count, num);
-                num = (int)_buffers.Count;
+                num = _buffers.Count;
             }
-            var buffers = new PacketBuffer[num];
-            for(int i = 0; i< num; i++)
+            for (int i = 0; i < num; i++)
                 buffers[i] = _buffers.Pop();
-            return buffers;
+            return num;
         }
 
         /// <summary>

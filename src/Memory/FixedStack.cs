@@ -8,7 +8,7 @@ namespace IxyCs.Memory
     /// but this does provide a large performance increase and as this driver is not meant for production
     /// environments, the trade-off is acceptable.
     /// </summary>
-    internal struct FixedStack
+    public struct FixedStack
     {
         private PacketBuffer[] _buffers;
         private int _top;
