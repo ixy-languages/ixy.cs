@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Runtime;
 using IxyCs.Ixgbe;
 using IxyCs.Memory;
 
@@ -14,6 +15,7 @@ namespace IxyCs.Demo
 
         public unsafe Forwarder(string pci1, string pci2)
         {
+            GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
             if(String.IsNullOrEmpty(pci1) || String.IsNullOrEmpty(pci2))
             {
                 Log.Error("Please provide two pci addresses");
