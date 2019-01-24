@@ -89,17 +89,17 @@ namespace IxyCs
         /// <summary>
         /// Calls TxBatch until all packets are queued with busy waiting
         /// </summary>
-        public void TxBatchBusyWait(int queueId, PacketBuffer[] buffers)
+        public void TxBatchBusyWait(int queueId, Span<PacketBuffer> buffers)
         {
-            int numSent = 0;
-            while(numSent < buffers.Length)
+            while(buffers.Length > 0)
             {
-                numSent += TxBatch(queueId, buffers.Skip(numSent).Take(buffers.Length - numSent).ToArray());
+                var numSent = TxBatch(queueId, buffers);
+                buffers = buffers.Slice(numSent);
             }
         }
 
-        public abstract PacketBuffer[] RxBatch(int queueId, int buffersCount);
-        public abstract int TxBatch(int queueId, PacketBuffer[] buffers);
+        public abstract int RxBatch(int queueId, Span<PacketBuffer> buffers);
+        public abstract int TxBatch(int queueId, Span<PacketBuffer> buffers);
         public abstract void ReadStats(ref DeviceStats stats);
         public abstract uint GetLinkSpeed();
         public abstract void SetPromisc(bool enabled);

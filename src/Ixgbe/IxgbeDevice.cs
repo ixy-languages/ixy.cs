@@ -101,17 +101,16 @@ namespace IxyCs.Ixgbe
         //Try to receive a single packet if one is available, non-blocking
         //Section 7.1.9 explains RX ring structure
         //We control the tail of the queue, hardware controls the head
-        public override PacketBuffer[] RxBatch(int queueId, int buffersCount)
+        public override int RxBatch(int queueId, Span<PacketBuffer> buffers)
         {
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
 
-            var buffers = new PacketBuffer[buffersCount];
             var queue = RxQueues[queueId] as IxgbeRxQueue;
             ushort rxIndex = (ushort)queue.Index;
             ushort lastRxIndex = rxIndex;
             int bufInd;
-            for(bufInd = 0; bufInd < buffersCount; bufInd++)
+            for(bufInd = 0; bufInd < buffers.Length; bufInd++)
             {
                 var descAddr = queue.GetDescriptorAddress(rxIndex);
                 var status = queue.ReadWbStatusError(descAddr);
@@ -155,11 +154,11 @@ namespace IxyCs.Ixgbe
                 SetReg(IxgbeDefs.RDT((uint)queueId), lastRxIndex);
                 queue.Index = rxIndex;
             }
-            Array.Resize(ref buffers, bufInd);
-            return buffers;
+
+            return bufInd;
         }
 
-        public override int TxBatch(int queueId, PacketBuffer[] buffers)
+        public override int TxBatch(int queueId, Span<PacketBuffer> buffers)
         {
             if(queueId < 0 || queueId >= RxQueues.Length)
                 throw new ArgumentOutOfRangeException("Queue id out of bounds");
@@ -221,7 +220,7 @@ namespace IxyCs.Ixgbe
             queue.CleanIndex = cleanIndex;
 
             //Step 2: Send out as many of our packets as possible
-            uint sent;
+            int sent;
             for(sent = 0; sent < buffers.Length; sent++)
             {
                 var descAddr = queue.GetDescriptorAddress(currentIndex);
@@ -249,7 +248,7 @@ namespace IxyCs.Ixgbe
 
             //Send out by advancing tail, i.e. pass control of the bus to the NIC
             SetReg(IxgbeDefs.TDT((uint)queueId), (uint)queue.Index);
-            return (int)sent;
+            return sent;
         }
 
         private void ResetAndInit()

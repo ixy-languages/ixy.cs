@@ -34,10 +34,15 @@ namespace IxyCs.Demo
 
         private Mempool _mempool;
 
-        public PacketGenerator(string pciAddr)
+        public unsafe PacketGenerator(string pciAddr)
         {
             InitMempool();
+
             var dev = new IxgbeDevice(pciAddr, 1, 1);
+
+            // TODO: switch to C# 7.3 and replace with Span<PacketBuffer> buffers = stackalloc PacketBuffer[BatchSize];
+            var buffersArray = stackalloc PacketBuffer[BatchSize];
+            var buffers = new Span<PacketBuffer>(buffersArray, BatchSize);
 
             var statsOld = new DeviceStats(dev);
             var statsNew = new DeviceStats(dev);
@@ -49,10 +54,11 @@ namespace IxyCs.Demo
 
             while(true)
             {
-                var buffers = _mempool.GetPacketBuffers(BatchSize);
-                foreach(var buf in buffers)
+                var batchCount = _mempool.GetPacketBuffers(buffers);
+                var batch = buffers.Slice(0, batchCount);
+                foreach (var buf in batch)
                     buf.WriteData(PacketSize - 4, seqNum++);
-                dev.TxBatchBusyWait(0, buffers);
+                dev.TxBatchBusyWait(0, batch);
 
                 if((counter++ & 0xFFF) == 0 && stopWatch.ElapsedMilliseconds > 100)
                 {
