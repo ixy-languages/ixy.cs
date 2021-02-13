@@ -426,7 +426,7 @@ namespace IxyCs.Ixgbe
                 unchecked
                 {
                     //Clear bits
-                    txdctl &= (uint)(~(0x3F | (0x3F << 8) | (0x3F << 16)));
+                    txdctl &= (uint)(~(0x7F | (0x7F << 8) | (0x7F << 16)));
                     //From DPDK
                     txdctl |= (36 | (8 << 8) | (4 << 16));
                 }
