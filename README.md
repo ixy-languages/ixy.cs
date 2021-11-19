@@ -29,11 +29,11 @@ Set up hugepages
 Run the packet generator demo
 
 
-    sudo dotnet bin/release/netcoreapp2.1/IxyCs.dll pktgen PCI_ADDRESS
+    sudo dotnet bin/release/net6.0/IxyCs.dll pktgen PCI_ADDRESS
 
 OR
 
-    sudo dotnet bin/release/netcoreapp2.1/IxyCs.dll fwd PCI_1 PCI_2
+    sudo dotnet bin/release/net6.0/IxyCs.dll fwd PCI_1 PCI_2
 
 
 
